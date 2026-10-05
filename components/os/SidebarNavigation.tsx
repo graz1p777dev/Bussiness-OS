@@ -4,11 +4,11 @@ import {LayoutDashboard,BriefcaseBusiness,CheckSquare,Bot,Wallet,Settings,Chevro
 import {navigation} from '../../lib/os/data';
 import {useStored} from '../../lib/os/storage';
 const groups:{id:string;label:string;icon:LucideIcon;routes:string[]}[]=[
- {id:'business',label:'Бизнес',icon:BriefcaseBusiness,routes:['crm','conversations','customers','orders','inventory']},
- {id:'work',label:'Работа',icon:CheckSquare,routes:['tasks','calendar','employees']},
- {id:'intelligence',label:'AI и аналитика',icon:Bot,routes:['agents','builder','automations','knowledge','analytics']},
+ {id:'business',label:'Бизнес',icon:BriefcaseBusiness,routes:['crm','conversations','customers','orders','inventory','pos']},
+ {id:'work',label:'Работа',icon:CheckSquare,routes:['tasks','calendar','employees','planning']},
+ {id:'intelligence',label:'AI и аналитика',icon:Bot,routes:['agents','builder','automations','knowledge','analytics','laboratory']},
  {id:'management',label:'Управление',icon:Wallet,routes:['finance','marketing','integrations']},
- {id:'system',label:'Система',icon:Settings,routes:['developer','audit','settings','security','recovery']}
+ {id:'system',label:'Система',icon:Settings,routes:['developer','audit','settings','security','server','help']}
 ];
 export default function SidebarNavigation({route,collapsed,go}:{route:string;collapsed:boolean;go:(route:string)=>void}){
  const [open,setOpen]=useStored('navigation-group','');const [narrow,setNarrow]=useState(false);const [flyout,setFlyout]=useState<{id:string;top:number}|null>(null);const root=useRef<HTMLDivElement>(null);

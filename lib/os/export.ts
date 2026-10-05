@@ -1,0 +1,2 @@
+export function downloadText(name:string,text:string,type='text/plain'){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
+export function exportCSV(name:string,headers:string[],rows:(string|number)[][]){const q=(v:string|number)=>'"'+String(v).replaceAll('"','""')+'"';downloadText(name,'\ufeff'+[headers,...rows].map(row=>row.map(q).join(',')).join('\n'),'text/csv;charset=utf-8')}
