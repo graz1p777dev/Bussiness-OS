@@ -1,0 +1,8 @@
+'use client';
+import {X,ArrowUpRight,Search} from 'lucide-react';
+import type {ReactNode} from 'react';
+export function Badge({children,tone=''}:{children:ReactNode;tone?:string}){return <span className={'badge '+tone}>{children}</span>}
+export function Modal({title,children,close,wide=false}:{title:string;children:ReactNode;close:()=>void;wide?:boolean}){return <div className="overlay" onMouseDown={e=>{if(e.target===e.currentTarget)close()}}><section role="dialog" aria-modal="true" aria-label={title} className={'modal '+(wide?'wide':'')}><header><h2>{title}</h2><button aria-label="Закрыть" onClick={close}><X size={18}/></button></header>{children}</section></div>}
+export function Drawer({title,children,close}:{title:string;children:ReactNode;close:()=>void}){return <div className="overlay drawer-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)close()}}><section role="dialog" aria-label={title} aria-modal="true" className="drawer"><header><h2>{title}</h2><button aria-label="Закрыть" onClick={close}><X size={18}/></button></header><div className="drawer-content">{children}</div></section></div>}
+export function Metric({label,value,change}:{label:string;value:string;change:string}){return <div className="metric"><span>{label}<ArrowUpRight size={15}/></span><strong>{value}</strong><small><b>{change}</b> к прошлому периоду</small></div>}
+export function SearchField({value,set,placeholder='Поиск...'}:{value:string;set:(x:string)=>void;placeholder?:string}){return <label className="search-field"><Search size={16}/><input value={value} onChange={e=>set(e.target.value)} placeholder={placeholder}/></label>}

@@ -1,0 +1,2 @@
+import {Sparkles} from 'lucide-react';
+export default function PageLoading({label='Открываем workspace',overlay=false}:{label?:string;overlay?:boolean}){return <div className={'page-loading '+(overlay?'loading-overlay':'')} role="status" aria-live="polite" aria-label={label}><div className="loading-orbit"><span/><span/><span/><Sparkles size={27}/></div><strong>{label}</strong><div className="loading-line"><i/></div><small>Businnes OS</small></div>}
