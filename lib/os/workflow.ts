@@ -6,13 +6,13 @@ export type WorkflowNode={id:string;data:Record<string,unknown>};
 export type WorkflowEdge={id:string;source:string;target:string;label?:unknown;sourceHandle?:string|null};
 export type WorkflowJournal={id:string;node:string;result:string;status:'done'|'skipped'|'waiting'};
 export type WorkflowOptions={approvedNodes?:string[]};
-function branchName(edge:WorkflowEdge){return edge.sourceHandle==='yes'?'Да':edge.sourceHandle==='no'?'Нет':String(edge.label||'')}
+import {workflowBranch,workflowStructureErrors} from './workflow-schema.ts';
 function interpolate(text:string,client:Entity){const rendered=renderReply(text.replaceAll('{{name}}','{{клиент}}'),client);if(rendered.missing.length)throw new Error('Не заполнены переменные: '+rendered.missing.join(', '));return rendered.text}
 function transformValue(value:unknown,client:Entity):unknown{if(typeof value==='string')return interpolate(value,client);if(Array.isArray(value))return value.map(v=>transformValue(v,client));if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,v])=>[key,transformValue(v,client)]));return value}
 function readJSON(text:unknown,label:string){try{return JSON.parse(String(text||'{}'))}catch{throw new Error(label+': некорректный JSON')}}
 function checkGraph(nodes:WorkflowNode[],edges:WorkflowEdge[]){const ids=new Set(nodes.map(n=>n.id));if(ids.size!==nodes.length)throw new Error('ID узлов должны быть уникальны');if(edges.some(e=>!ids.has(e.source)||!ids.has(e.target)))throw new Error('Связь с отсутствующим узлом');const visited=new Set<string>(),stack=new Set<string>();function visit(id:string){if(stack.has(id))throw new Error('Циклы в тесте не поддерживаются');if(visited.has(id))return;stack.add(id);edges.filter(e=>e.source===id).forEach(e=>visit(e.target));stack.delete(id);visited.add(id)}nodes.forEach(n=>visit(n.id))}
 export function runWorkflow(nodes:WorkflowNode[],edges:WorkflowEdge[],client:Entity,context:AgentContext,options:WorkflowOptions={}){
- checkGraph(nodes,edges);
+ const problems=workflowStructureErrors(nodes,edges);if(problems.length)throw new Error(problems.join('. '));checkGraph(nodes,edges);
  const triggers=nodes.filter(n=>n.data.kind==='Trigger');if(triggers.length!==1)throw new Error('Нужен ровно один триггер');
  const depths=new Map<string,number>();function depth(id:string):number{if(depths.has(id))return depths.get(id)!;const parents=edges.filter(e=>e.target===id);const value=parents.length?Math.max(...parents.map(e=>depth(e.source)))+1:0;depths.set(id,value);return value}nodes.forEach(n=>depth(n.id));
  const journal:WorkflowJournal[]=[];let updated={...client};const drafts:string[]=[];const visited=new Set<string>();const queue=[triggers[0].id];let output:unknown=null;
@@ -42,7 +42,7 @@ export function runWorkflow(nodes:WorkflowNode[],edges:WorkflowEdge[],client:Ent
    log(text);
   }
   const next=edges.filter(e=>e.source===id);
-  if(branch!==undefined){const chosen=next.filter(e=>branchName(e).startsWith(branch?'Да':'Нет'));if(chosen.length!==1)throw new Error('Для условия нужна ровно одна ветка «Да» и одна «Нет»');queue.push(chosen[0].target)}else queue.push(...next.map(e=>e.target));
+  if(branch!==undefined){const chosen=next.filter(e=>workflowBranch(e)===(branch?'Да':'Нет'));if(chosen.length!==1)throw new Error('Для условия нужна ровно одна ветка «Да» и одна «Нет»');queue.push(chosen[0].target)}else queue.push(...next.map(e=>e.target));
  }
  return result();
 }
