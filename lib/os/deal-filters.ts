@@ -8,7 +8,7 @@ export function filterDeals(deals:Entity[],filters:DealFilters,search:string,una
  const valid=(!filters.min||!filters.max||Number(filters.min)<=Number(filters.max))&&(!filters.createdFrom||!filters.createdTo||filters.createdFrom<=filters.createdTo);
  if(!valid)return [];
  const rows=deals.filter(d=>{
-  if(filters.assignment==='Мои'&&d.owner!==viewer)return false;
+  if(filters.assignment==='Мои'&&d.owner!==viewer&&d.owner!==viewer.trim().split(/\s+/)[0])return false;
   if(filters.assignment==='Без ответственного'&&d.owner.trim())return false;
   if(filters.employee!=='Все'&&d.owner!==filters.employee)return false;
   if(filters.stage!=='Все'&&d.status!==filters.stage)return false;

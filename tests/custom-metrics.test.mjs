@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {emptyMetric,metricValue,metricGroups} from '../lib/os/custom-metrics.ts';
+const rows=[{status:'Успешно',channel:'Telegram',employee:'Айым',ai:true,date:'2026-10-01',revenue:100,cost:20,spend:10,aiCost:5,responseMinutes:2},{status:'В работе',channel:'Instagram',employee:'Айым',ai:false,date:'2026-10-02',revenue:0,cost:0,spend:5,aiCost:0,responseMinutes:8}];
+test('custom metrics apply their own conditions within supplied dashboard slice',()=>{assert.equal(metricValue({...emptyMetric,operation:'sum',field:'profit'},rows),60);assert.equal(metricValue({...emptyMetric,operation:'average',field:'responseMinutes',owner:'AI'},rows),2);assert.equal(metricValue({...emptyMetric,operation:'share',status:'Успешно'},rows),50);assert.equal(metricValue({...emptyMetric,operation:'share'},[]),null);assert.equal(metricValue({...emptyMetric,operation:'average',channel:'WhatsApp'},rows),null)});
+test('grouped shares use each group denominator and preserve source rows',()=>{assert.deepEqual(metricGroups({...emptyMetric,operation:'share',status:'Успешно',group:'date'},rows),[{name:'2026-10-01',value:100},{name:'2026-10-02',value:0}]);assert.equal(rows.length,2)});

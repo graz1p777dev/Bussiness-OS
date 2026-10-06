@@ -95,3 +95,14 @@ pnpm build
 Проверки: 20 тестов предметной логики, TypeScript и production-сборка; браузер — подстановка суммы и менеджера, вставка и отправка ответа, выделение открытого клиента, отсутствие кнопок результата на карточках.
 
 - Цвета этапов из настроек воронки отображаются в меню выбора, выбранном этапе и бейдже карточки. Пункты имеют цветную полосу, точку и тонированный фон; цвет сохраняется при выборе.
+
+## Frontend review branch: bot, documents and custom analytics
+
+- Bot laboratory uses separate system, manager, business rules, router, supervisor and follow-up instructions. Original SmileKit manager/supervisor prompts and seven reply templates are available as an explicit profile. Loading it preserves an instruction snapshot. Template rules select existing card fields, events, values and actions; ordered rules and once-per-dialog behavior execute locally in the test chat. Templates share storage with the CRM conversation composer and support name, amount, stage, owner, channel, phone and city. Model/supervisor requests remain simulated; no external messages are sent.
+- Workspace settings offer selections for models, default locations, schedules, payment methods, card fields and webhook events. Bot configuration navigation is grouped into setup, testing and directories.
+- Custom analytics defines count, sum, average or conditional share, a numeric field, conditions and grouping. Definitions persist and recalculate within dashboard filters. Individual calculations can be edited. Analytics cards use measured CSS grid rows rather than browser columns, preventing split tables; tables scroll within cards.
+- Knowledge is a document explorer with folders, breadcrumbs, list/grid views, local uploads in IndexedDB, previews/downloads, favorites, rename/edit, movement and recoverable trash.
+- Agent Builder adds a snapshot library, JSON import/export, branch connection settings, structural validation and protection against applying a result after the graph/client changed. External actions and models still require backend; local CRM stage updates are applied explicitly.
+- Employee preview runs on port 5175 with its own demo entry; original director review remains on 5173. Development changes run on 5174.
+
+Validation: 34 model tests, TypeScript checking, production build and browser checks of template routing, custom metric creation, document creation/preview and responsive bot settings.
