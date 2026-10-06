@@ -1,0 +1,77 @@
+.settings-simple .studio-heading{align-items:center;gap:16px}
+.settings-simple .settings-autosaved{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;color:var(--muted);font-size:calc(12px * var(--font-scale,1))}
+.settings-simple .settings-layout{grid-template-columns:224px minmax(0,1fr);gap:32px}
+.settings-simple .settings-index{top:16px}
+.settings-simple .settings-search{display:flex;align-items:center;gap:8px;padding:0 10px;margin:0;background:var(--panel);border:1px solid var(--border);border-radius:var(--control-radius)}
+.settings-simple .settings-search input{padding:10px 0;min-width:0;border:0;background:none;box-shadow:none;font-size:calc(12px * var(--font-scale,1))}
+.settings-simple .settings-search button{border:0;background:none;padding:3px;flex-shrink:0}
+.settings-simple .settings-index nav{display:block;margin:12px 0;max-height:calc(100vh - 190px);padding:0 3px 4px 0}
+.settings-simple .settings-nav-group{padding:3px 0 10px}
+.settings-simple .settings-nav-group h3{font-size:calc(11px * var(--font-scale,1));font-weight:600;color:var(--muted);padding:10px 11px 5px}
+.settings-simple .settings-nav-group button{min-height:36px;padding:8px 10px;line-height:1.35;white-space:normal}
+.settings-simple .settings-content{max-width:1120px}
+.settings-simple .section-intro{margin-bottom:18px}
+.settings-simple .section-intro p{margin-top:5px;font-size:calc(13px * var(--font-scale,1))}
+.settings-simple .performance-setting{padding:18px 20px}
+.settings-simple .performance-setting.is-enabled{border-color:color-mix(in srgb,var(--accent) 50%,var(--border))}
+.settings-simple .setting-toggle{margin:0;min-height:62px;gap:24px;padding:14px 0;align-items:center}
+.settings-simple .setting-toggle>span{min-width:0;color:var(--text)}
+.settings-simple .setting-toggle small{display:block;line-height:1.55;margin-top:5px;font-weight:400}
+.settings-simple .setting-toggle b{display:flex;align-items:center;gap:10px;font-size:calc(15px * var(--font-scale,1))}
+.settings-simple .setting-toggle input{flex-shrink:0}
+.settings-simple .performance-setting .setting-toggle{padding:0;min-height:44px}
+.settings-simple .performance-setting .setting-toggle>span{max-width:660px}
+.settings-simple .performance-enabled{display:flex;align-items:center;gap:6px;margin-top:10px;color:var(--accent)}
+.settings-simple .appearance-row{display:grid;grid-template-columns:minmax(145px,.65fr) minmax(0,1.35fr);gap:20px;align-items:center;padding:19px 0;border-bottom:1px solid var(--border)}
+.settings-simple .appearance-row h4{color:var(--text);font-size:calc(13px * var(--font-scale,1))}
+.settings-simple .appearance-row p{margin-top:5px;font-size:calc(12px * var(--font-scale,1));line-height:1.55}
+.settings-simple .setting-options{display:flex;flex-wrap:wrap;gap:6px}
+.settings-simple .setting-options button{position:relative;flex:1 1 auto;min-height:39px;padding:9px 12px;font-size:calc(12px * var(--font-scale,1));justify-content:center;flex-wrap:wrap;line-height:1.4}
+.settings-simple .setting-options button>small{flex-basis:100%;font-size:calc(10px * var(--font-scale,1));color:var(--muted)}
+.settings-simple .setting-options button>svg{position:absolute;top:3px;right:3px;width:10px;height:10px}
+.settings-simple .setting-options button.selected{border-color:var(--accent)}
+.settings-simple .accent-options button{padding:9px 10px;min-width:50px;gap:5px;font-size:calc(10px * var(--font-scale,1))}
+.settings-simple .accent-options i{width:19px;height:19px}
+.settings-simple .settings-disclosure{margin-top:16px}
+.settings-simple .settings-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:18px;cursor:pointer;list-style:none;color:var(--text);padding:10px 0;font-size:calc(13px * var(--font-scale,1))}
+.settings-simple .settings-disclosure>summary::-webkit-details-marker{display:none}
+.settings-simple .settings-disclosure>summary small{display:block;line-height:1.5;margin-top:4px;font-size:calc(11px * var(--font-scale,1));font-weight:400}
+.settings-simple .settings-disclosure>summary b{font-weight:550}
+.settings-simple .settings-disclosure>summary>svg{transition:transform .18s ease;color:var(--muted)}
+.settings-simple .settings-disclosure[open]>summary>svg{transform:rotate(180deg)}
+.settings-simple .disclosure-content{padding-top:12px}
+.settings-simple .settings-disclosure.advanced-settings>summary{padding:0}
+.settings-simple .palette-grid{margin-top:16px}
+.settings-simple .palette-live{margin-bottom:16px}
+.settings-simple .palette-sample-button{display:inline-flex;padding:7px 10px;border:1px solid;border-radius:var(--control-radius);font-size:calc(12px * var(--font-scale,1));white-space:normal}
+.settings-simple .readability-preview{margin:18px 0;padding:20px;border-radius:var(--control-radius);text-align:left}
+.settings-simple .readability-preview h3{font-size:calc(17px * var(--font-scale,1))}
+.settings-simple .readability-preview p{font-size:var(--base-font,14px)}
+.settings-simple .readability-sample-control{display:inline-flex;padding:8px 11px;border:1px solid var(--border);border-radius:var(--control-radius);background:var(--panel);font-size:var(--base-font,14px)}
+.settings-simple input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(to right,var(--accent) 0 var(--range-fill,0%),var(--border) var(--range-fill,0%) 100%)}
+.settings-simple .settings-save{position:static;padding:14px 0;box-shadow:none;background:none;border:0;margin:8px 0 0}
+.settings-simple .settings-save small{display:flex;align-items:center;gap:7px;line-height:1.6}
+.settings-simple .settings-save button{font-size:calc(12px * var(--font-scale,1))}
+.settings-simple .settings-tools{display:flex;justify-content:flex-end;padding:12px 0}
+.settings-simple .settings-tools button{font-size:calc(11px * var(--font-scale,1));color:var(--muted);background:transparent}
+.settings-simple .settings-search-guidance{display:flex;flex-direction:column;gap:12px;align-items:flex-start;min-height:210px;justify-content:center}
+.settings-simple .settings-no-results{display:grid;gap:12px;padding:12px;font-size:calc(12px * var(--font-scale,1))}
+.settings-simple :is(button,summary,input):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+:root[data-density=compact] .branch-navigation .branch-toggle{padding-top:7px;padding-bottom:7px}
+:root[data-density=compact] .branch-navigation .branch-item{padding-top:6px;padding-bottom:6px}
+:root[data-density=compact] .crm-deal-card{padding:10px!important}
+:root[data-density=compact] .crm-deal-card .deal-card-note{padding:6px 8px;min-height:40px;margin-bottom:9px}
+:root[data-density=compact] .crm-deal-card footer{padding-top:7px}
+:root[data-density=compact] .settings-simple .appearance-row{padding-top:12px;padding-bottom:12px}
+:root[data-density=compact] .settings-simple .setting-toggle{min-height:50px;padding-top:10px;padding-bottom:10px}
+:root[data-density=compact] .settings-simple .readability-preview{padding:12px}
+:root[data-density=compact] .settings-simple .readability-preview h3,:root[data-density=compact] .settings-simple .readability-preview p{margin:7px 0}
+:root[data-density=compact] .settings-simple .readability-sample-control{padding:5px 8px}
+:root[data-density=compact] .settings-simple .settings-fields{column-gap:16px}
+:root[data-density=compact] .settings-simple .settings-fields>label,:root[data-density=compact] .settings-simple .setting-group{margin:9px 0}
+:root[data-low-power=true] *,:root[data-low-power=true] *::before,:root[data-low-power=true] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;box-shadow:none!important;text-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+:root[data-low-power=true] :is(.neutral-art,.art-asset,.floating-ai,.theme-mini,.ai-symbol,.ai-orb,.ai-mark,.ai-launch,.pulse-glow){filter:none!important;will-change:auto!important}
+:root[data-low-power=true] :is(.kanban-card,.crm-deal-card,.agent-card,.integration,.employee):hover{transform:none!important}
+:root[data-low-power=true] :is(button,input,textarea,a,[tabindex]):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:1100px){.settings-simple .settings-layout{grid-template-columns:198px minmax(0,1fr);gap:20px}.settings-simple .appearance-row{grid-template-columns:1fr;gap:10px}.settings-simple .setting-options button{flex:1 1 100px}}
+@media(max-width:760px){.settings-simple .studio-heading{align-items:flex-start;flex-direction:column;gap:8px}.settings-simple .settings-layout{display:flex;gap:18px}.settings-simple .settings-index{position:static}.settings-simple .settings-index nav{max-height:210px;display:flex;flex-wrap:wrap;gap:6px 12px;margin-bottom:0}.settings-simple .settings-nav-group{flex:1 1 145px;min-width:0}.settings-simple .settings-nav-group button{width:100%;font-size:calc(11px * var(--font-scale,1));min-height:34px;white-space:normal}.settings-simple .settings-content{width:100%}.settings-simple .theme-preview-grid{gap:8px}.settings-simple .theme-preview>span{font-size:calc(11px * var(--font-scale,1));flex-wrap:wrap}.settings-simple .setting-toggle{gap:12px}.settings-simple .settings-save{gap:10px}.settings-simple .settings-save small{flex-basis:100%}.settings-simple .settings-save button{flex:none}.settings-simple .settings-tools{justify-content:flex-start}.settings-simple .palette-live{min-height:160px}.settings-simple .palette-live>div{padding:12px}.settings-simple .palette-grid{grid-template-columns:1fr 1fr}.settings-simple .color-token{padding:8px;gap:6px}.settings-simple .color-token i{width:25px;height:25px}.settings-simple .color-token>span{font-size:calc(10px * var(--font-scale,1));min-width:0}.settings-simple .color-token small{font-size:calc(9px * var(--font-scale,1))}}
