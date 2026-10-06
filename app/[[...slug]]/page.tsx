@@ -9,6 +9,7 @@ export default async function Page({params}:{params:Promise<{slug?:string[]}>}){
  if(slug.length===1&&publicRoutes.includes(slug[0]))return <AuthScreen key={slug[0]} route={slug[0]}/>;
  const errorRoute=slug.length===2&&slug[0]==='errors'&&/^([45][0-9]{2})$/.test(slug[1]);
  if(slug.length>0&&!errorRoute&&!inventoryRoutes['/'+slug.join('/')]&&(slug.length!==1||!navigation.some(n=>n[1]===slug[0])))notFound();
- const workspace=<LifeOS initialPath={'/'+slug.join('/')}/>;
- return errorRoute?workspace:<AuthGate>{workspace}</AuthGate>;
+ const employeeDemo=process.env.OS_EMPLOYEE_DEMO==='1';
+ const workspace=<LifeOS employeeDemo={employeeDemo} initialPath={'/'+slug.join('/')}/>;
+ return errorRoute||employeeDemo?workspace:<AuthGate>{workspace}</AuthGate>;
 }

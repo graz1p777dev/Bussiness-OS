@@ -11,8 +11,8 @@ const groups:{id:string;label:string;icon:LucideIcon;routes:string[]}[]=[
  {id:'management',label:'Управление',icon:Wallet,routes:['finance','marketing','integrations']},
  {id:'system',label:'Система',icon:Settings,routes:['developer','audit','settings','security','server','help']}
 ];
-export default function SidebarNavigation({route,collapsed,go}:{route:string;collapsed:boolean;go:(route:string)=>void}){
- const [preview]=useStored('team-preview-v3','');const [employees]=useStored('team-employees-v3',initialEmployees);const [roles]=useStored('team-roles-v3',initialRoles);const blocked=(id:string)=>Boolean(preview&&!hasAccess(employees.find(e=>e.id===preview),roles,id));
+export default function SidebarNavigation({route,collapsed,go,employeeId}:{route:string;collapsed:boolean;go:(route:string)=>void;employeeId?:string}){
+ const [storedPreview]=useStored('team-preview-v3','');const preview=employeeId||storedPreview;const [employees]=useStored('team-employees-v3',initialEmployees);const [roles]=useStored('team-roles-v3',initialRoles);const blocked=(id:string)=>Boolean(preview&&!hasAccess(employees.find(e=>e.id===preview),roles,id));
  const [open,setOpen]=useState(groups.find(g=>g.routes.includes(route))?.id||'');const [narrow,setNarrow]=useState(false);const [flyout,setFlyout]=useState<{id:string;top:number}|null>(null);const root=useRef<HTMLDivElement>(null);
  useEffect(()=>{const mq=matchMedia('(max-width:760px)');const update=()=>setNarrow(mq.matches);update();mq.addEventListener('change',update);return()=>mq.removeEventListener('change',update)},[]);
  const [lastNav,setLastNav]=useState({route,collapsed,narrow});if(lastNav.route!==route||lastNav.collapsed!==collapsed||lastNav.narrow!==narrow){if(lastNav.route!==route)setOpen(groups.find(g=>g.routes.includes(route))?.id||'');setFlyout(null);setLastNav({route,collapsed,narrow})}
