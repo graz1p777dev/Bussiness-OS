@@ -21,3 +21,6 @@ test('new customers have no unanswered badge until an incoming message exists',a
  assert.equal(customerNeedsReply('new-customer',[incoming]),true);
  assert.equal(customerNeedsReply('new-customer',[incoming,outgoing]),false);
 });
+
+test('selected chat survives insertion and reordering, with safe fallback after deletion',async()=>{const {selectedConversation}=await import('../lib/os/conversations.ts');const {initialDeals}=await import('../lib/os/data.ts');const selected=initialDeals[2];assert.equal(selectedConversation(initialDeals,selected.id),selected);assert.equal(selectedConversation([...initialDeals].reverse(),selected.id),selected);assert.equal(selectedConversation([{...initialDeals[0],id:'new'},...initialDeals],selected.id),selected);assert.equal(selectedConversation(initialDeals.filter(d=>d.id!==selected.id),selected.id),initialDeals[0]);assert.equal(selectedConversation([],selected.id),undefined)});
+test('conversation timestamps come from the latest message, without inventing times for new chats',async()=>{const {conversationTime}=await import('../lib/os/conversations.ts');assert.equal(conversationTime('new',[]),'—');assert.equal(conversationTime('new',[{...incoming,sentAt:'2026-10-06T08:07:00Z'}]),'14:07');assert.equal(conversationTime('new',[{...incoming,sentAt:'invalid'}]),'—');assert.equal(conversationTime('new',['Legacy reply']),'—')});
