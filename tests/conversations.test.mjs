@@ -11,3 +11,13 @@ test('legacy operator replies and empty conversation fallback are compatible',()
  assert.equal(needsReply([],null),false);assert.equal(needsReply([],'outgoing'),false);assert.equal(needsReply([]),true);
  assert.equal(messageText(incoming),'Подскажите цену?');assert.equal(messageText('Старый ответ'),'Старый ответ');
 });
+
+test('new customers have no unanswered badge until an incoming message exists',async()=>{
+ const {customerNeedsReply,hasDemoConversation}=await import('../lib/os/conversations.ts');
+ const {initialDeals}=await import('../lib/os/data.ts');
+ assert.equal(hasDemoConversation(initialDeals[0].id),true);
+ assert.equal(customerNeedsReply(initialDeals[0].id,[]),true);
+ assert.equal(customerNeedsReply('new-customer',[]),false);
+ assert.equal(customerNeedsReply('new-customer',[incoming]),true);
+ assert.equal(customerNeedsReply('new-customer',[incoming,outgoing]),false);
+});
