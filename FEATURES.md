@@ -106,3 +106,13 @@ pnpm build
 - Employee preview runs on port 5175 with its own demo entry; original director review remains on 5173. Development changes run on 5174.
 
 Validation: 34 model tests, TypeScript checking, production build and browser checks of template routing, custom metric creation, document creation/preview and responsive bot settings.
+
+## Builder execution follow-through
+
+- Generated sales/support workflows include usable condition values, stage selections, message bodies and explicit mocked HTTP results. Branch ports distinguish Yes/No. Multiple paths converge once, after their predecessors; cycles and missing references are rejected.
+- Runs read real local CRM, tasks and inventory, prepare replies from the shared template library, interpolate current card values and transform JSON locally. HTTP/code can use explicit test JSON; neither requests nor scripts execute externally.
+- Human approval and delay pause a run. The operator can approve/skip and continue. Publishing stores a local graph signature; changed graphs display Draft. Readable node statuses animate the run, and its journal/history are separate from the canvas.
+- Older snapshots remain available alongside named/imported versions. Creating a fresh scenario preserves the previous graph. Explanations and optimization suggestions inspect the current graph.
+- Shared selects flatten conditional option groups and support an empty choice without passing Radix an empty item value. Browser verification confirms supplier selection and reset produce the correct form values.
+
+Validation: 37 passing tests, TypeScript, targeted lint, production build; browser checks of generated Yes/No paths, continued delay, condition choices, nullable supplier fields and mobile overflow.
