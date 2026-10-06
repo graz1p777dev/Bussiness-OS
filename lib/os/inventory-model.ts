@@ -1,6 +1,6 @@
-export type Product={id:string;name:string;sku:string;barcode:string;category:string;price:number;cost:number;unit:string;minimum:number;stocks:Record<string,number>;deleted:boolean;image?:string};
+export type Product={id:string;name:string;sku:string;barcode:string;category:string;price:number;cost:number;unit:string;minimum:number;stocks:Record<string,number>;deleted:boolean;image?:string;productType?:string;code?:string;gtin?:string;country?:string;description?:string;height?:number;width?:number;depth?:number;weight?:number;markup?:number;discount?:number;weighted?:boolean;taxIncluded?:boolean};
 export type Warehouse={id:string;name:string;address:string};
-export type StockDocument={id:string;type:string;productId:string;warehouse:string;target:string;quantity:number;cost:number;date:string;note:string;status:'Черновик'|'Проведён'|'Отменён';items?:{productId:string;quantity:number;cost:number}[];deltas?:{productId?:string;warehouse:string;quantity:number}[]};
+export type StockDocument={id:string;type:string;productId:string;warehouse:string;target:string;quantity:number;cost:number;date:string;note:string;status:'Черновик'|'Проведён'|'Отменён';supplier?:string;items?:{productId:string;quantity:number;cost:number}[];deltas?:{productId?:string;warehouse:string;quantity:number}[]};
 export type SaleLine={productId:string;name:string;quantity:number;price:number;cost:number;returned:number};
 export type Sale={id:string;date:string;shiftId:string;warehouse:string;items:SaleLine[];discount:number;total:number;payments:Record<string,number>;refunds:number;status:string};
 export type Shift={id:string;register:string;warehouse:string;cashier:string;opening:number;opened:string;closed:string;actual:number|null;expected?:number};
