@@ -1,5 +1,5 @@
 import {navigation} from './data.ts';
-export const teamActions={create:'Создание записей',edit:'Редактирование',remove:'Удаление',export:'Экспорт данных',ai:'Запуск ИИ',finance:'Финансовые операции',inventory:'Проведение складских документов',manageTeam:'Управление сотрудниками',password:'Смена пароля',production:'Действия в production'};
+export const teamActions={create:'Создание записей',edit:'Редактирование',remove:'Удаление',export:'Экспорт данных',ai:'Запуск ИИ',finance:'Финансовые операции',inventory:'Проведение складских документов',manageTeam:'Управление сотрудниками',password:'Пароль и защита своего аккаунта',production:'Действия в production'};
 export type TeamAction=keyof typeof teamActions;
 export type TeamRole={id:string;name:string;pages:string[];actions:TeamAction[]};
 export type Employee={id:string;name:string;email:string;position:string;role:string;status:'Активен'|'Заблокирован'|'Уволен';passwordChangedAt?:string;forcePasswordChange?:boolean};
