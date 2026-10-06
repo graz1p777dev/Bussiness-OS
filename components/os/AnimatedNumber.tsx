@@ -1,0 +1,4 @@
+'use client';
+import {useEffect,useRef,useState} from 'react';
+import {useMotionPreference} from '../../lib/os/motion';
+export default function AnimatedNumber({value,format}:{value:number;format:(n:number)=>string}){const motion=useMotionPreference();const [display,setDisplay]=useState(value);const previous=useRef(value);useEffect(()=>{const start=previous.current;const reduced=!motion;if(reduced){previous.current=value;const frame=requestAnimationFrame(()=>setDisplay(value));return()=>cancelAnimationFrame(frame)}let frame=0;const begin=performance.now();const tick=(now:number)=>{const progress=Math.min(1,(now-begin)/450);const current=start+(value-start)*(1-Math.pow(1-progress,3));previous.current=current;setDisplay(current);if(progress<1)frame=requestAnimationFrame(tick)};frame=requestAnimationFrame(tick);return()=>cancelAnimationFrame(frame)},[value,motion]);return <span aria-label={format(value)}>{format(display)}</span>}
