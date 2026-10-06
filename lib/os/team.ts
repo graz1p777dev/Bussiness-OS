@@ -8,3 +8,4 @@ export const initialEmployees:Employee[]=[{id:'owner-user',name:'Алихан Т
 export function hasAccess(employee:Employee|undefined,roles:TeamRole[],page?:string,action?:TeamAction){if(!employee||employee.status!=='Активен')return false;const role=roles.find(r=>r.id===employee.role);return Boolean(role&&(!page||role.pages.includes(page))&&(!action||role.actions.includes(action)))}
 export type ActionPermissions=Record<TeamAction,boolean>;
 export function actionPermissions(employee:Employee|undefined,roles:TeamRole[],page:string):ActionPermissions{return Object.fromEntries((Object.keys(teamActions) as TeamAction[]).map(action=>[action,hasAccess(employee,roles,page,action)])) as ActionPermissions}
+export function requiresPasswordChange(employee:Employee|undefined){return employee?.status==='Активен'&&employee.forcePasswordChange===true}

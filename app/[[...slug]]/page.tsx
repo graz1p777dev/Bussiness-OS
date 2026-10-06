@@ -11,5 +11,5 @@ export default async function Page({params}:{params:Promise<{slug?:string[]}>}){
  if(slug.length>0&&!errorRoute&&!inventoryRoutes['/'+slug.join('/')]&&(slug.length!==1||!navigation.some(n=>n[1]===slug[0])))notFound();
  const employeeDemo=process.env.OS_EMPLOYEE_DEMO==='1';
  const workspace=<LifeOS employeeDemo={employeeDemo} initialPath={'/'+slug.join('/')}/>;
- return errorRoute||employeeDemo?workspace:<AuthGate>{workspace}</AuthGate>;
+ return errorRoute?workspace:<AuthGate employeeId={employeeDemo?'aiym':undefined}>{workspace}</AuthGate>;
 }
