@@ -111,3 +111,7 @@ input[type=file]::file-selector-button{padding:8px 12px;margin-right:12px;border
 .metric-delete-control{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}.metric-delete-control p{margin-bottom:10px}.metric-delete-control button[data-permission=remove]{color:#e38491;border-color:color-mix(in srgb,#e38491 35%,var(--border))}
 
 .chat-profile-stage{display:inline-flex;align-items:center;padding:6px 10px;border:1px solid;border-radius:var(--radius);font-size:calc(12px * var(--font-scale));margin:4px 0 12px}.chat-no-selection{grid-column:2 / -1;align-items:center;justify-content:center;text-align:center;gap:12px;padding:24px}.chat-no-selection>svg{color:var(--muted)}.chat-no-selection h3,.chat-no-selection p{margin:0}
+
+.import-product-preview{max-height:340px;overflow:auto}.import-product-preview thead{position:sticky;top:0;background:var(--panel);z-index:1}
+
+.import-file-control{margin:16px 0}.import-file-control>button{max-width:100%}.import-file-control>button>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import Excel from 'exceljs';
+import {readProductWorkbook,writeProductWorkbook} from '../lib/os/product-workbook.ts';
+import {initialInventory} from '../lib/os/inventory-model.ts';
+test('XLSX catalog roundtrip retains text barcodes and numeric prices',async()=>{const product={...initialInventory.products[0],barcode:'000001234',description:'Описание\nВторая строка'};const sheets=await readProductWorkbook(await writeProductWorkbook([product]));assert.equal(sheets[0].name,'Товары');assert.equal(sheets[0].rows[1][2],product.barcode);assert.equal(sheets[0].rows[1][4],String(product.price));assert.equal(sheets[0].rows[1][8],product.description)});
+test('XLSX reads separate sheets, formatted zero prefixes and cached formula values',async()=>{const workbook=new Excel.Workbook();const first=workbook.addWorksheet('Первый');first.addRow(['sku','price']);first.addRow([123,{formula:'2*3',result:6}]);first.getCell('A2').numFmt='000000';workbook.addWorksheet('Второй').addRows([['name'],['Другой товар']]);const sheets=await readProductWorkbook(new Uint8Array(await workbook.xlsx.writeBuffer()).buffer);assert.equal(sheets.length,2);assert.deepEqual(sheets[0].rows[1],['000123','6']);assert.equal(sheets[1].rows[1][0],'Другой товар')});
+test('formulas without saved values and corrupt workbooks are rejected',async()=>{const workbook=new Excel.Workbook();workbook.addWorksheet('Товары').getCell('A1').value={formula:'1+1'};await assert.rejects(async()=>readProductWorkbook(new Uint8Array(await workbook.xlsx.writeBuffer()).buffer),/формула/);await assert.rejects(()=>readProductWorkbook(new TextEncoder().encode('not xlsx').buffer))});
