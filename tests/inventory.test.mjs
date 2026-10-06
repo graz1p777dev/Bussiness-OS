@@ -12,3 +12,39 @@ test('sale requires shift, balanced payment and available stock',()=>{const line
 test('split-payment sale, partial and final refunds retain price snapshots and discount allocation',()=>{const next=completeSale(withShift(),[{productId:'SKU-100',quantity:2}],600,{Наличные:1000,Карта:2000,QR:0},'s1','2026-10-05');assert.equal(next.products[0].stocks.main,2);assert.equal(next.sales[0].total,3000);const changed={...next,products:next.products.map(p=>({...p,price:9999}))};const partial=refundSale(changed,'s1',{'SKU-100':1});assert.equal(partial.products[0].stocks.main,3);assert.equal(partial.sales[0].refunds,1500);assert.equal(partial.sales[0].status,'Частичный возврат');assert.throws(()=>refundSale(partial,'s1',{'SKU-100':2}),/превышает/);const full=refundSale(partial,'s1',{'SKU-100':1});assert.equal(full.products[0].stocks.main,4);assert.equal(full.sales[0].refunds,3000);assert.equal(full.sales[0].status,'Возвращён');assert.throws(()=>refundSale(full,'s1',{'SKU-100':1}))});
 test('duplicate lines and duplicate sale IDs cannot double-decrement stock',()=>{const state=withShift();assert.throws(()=>completeSale(state,[{productId:'SKU-100',quantity:1},{productId:'SKU-100',quantity:1}],0,{Наличные:3600},'s1','date'),/повторяется/);const next=completeSale(state,[{productId:'SKU-100',quantity:1}],0,{Наличные:1800},'s1','date');assert.throws(()=>completeSale(next,[{productId:'SKU-100',quantity:1}],0,{Наличные:1800},'s1','date'),/уже сохранён/)});
 test('multi-item document commits atomically and rejects failure in later position',()=>{const state={...fresh(),documents:[doc('Расход',2,{items:[{productId:'SKU-100',quantity:1,cost:0},{productId:'SKU-101',quantity:7,cost:0}]})]};assert.throws(()=>postDocument(state,'d1'),/Недостаточно/);assert.equal(state.products[0].stocks.main,4);assert.equal(state.products[1].stocks.main,6);const valid={...state,documents:[{...state.documents[0],items:[{productId:'SKU-100',quantity:1,cost:0},{productId:'SKU-101',quantity:2,cost:0}]}]};const next=postDocument(valid,'d1');assert.equal(next.products[0].stocks.main,3);assert.equal(next.products[1].stocks.main,4);const restored=cancelDocument(next,'d1');assert.equal(restored.products[0].stocks.main,4);assert.equal(restored.products[1].stocks.main,6)});
+
+test('refund belongs to current shift and retains reason without changing closed shift cash',async()=>{
+ const {closeShift,openShift,paymentTotals}=await import('../lib/os/inventory-model.ts');
+ const sold=completeSale(withShift(),[{productId:'SKU-100',quantity:2}],600,{Наличные:1000,Карта:2000,QR:0},'s1','2026-10-05');
+ const closed=closeShift(sold,'shift1',2000,'2026-10-05T18:00:00Z');
+ assert.throws(()=>refundSale(closed,'s1',{'SKU-100':1}),/Откройте смену/);
+ const next=openShift(closed,{id:'shift2',register:'Main',warehouse:'main',cashier:'Next cashier',opening:2000,opened:'2026-10-06',closed:'',actual:null});
+ const returned=refundSale(next,'s1',{'SKU-100':1},{id:'r1',date:'2026-10-06',reason:'Не подошёл товар'});
+ assert.equal(returned.sales[0].refundHistory[0].shiftId,'shift2');
+ assert.equal(returned.sales[0].refundHistory[0].reason,'Не подошёл товар');
+ assert.equal(returned.sales[0].refundHistory[0].cashier,'Next cashier');
+ assert.equal(paymentTotals(returned,'shift1').Наличные,1000);
+ assert.equal(paymentTotals(returned,'shift2').Наличные,-1500);
+ assert.equal(returned.shifts.find(shift=>shift.id==='shift1').expected,2000);
+ assert.equal(closeShift(returned,'shift2',500,'date').shifts[0].expected,500);
+ assert.throws(()=>refundSale(returned,'s1',{'SKU-100':1},{id:'r1',date:'date',reason:'Повтор'}),/уже сохранён/);
+ assert.equal(next.products[0].stocks.main,2);
+});
+test('cash shifts validate amounts, warehouse, duplicate opening and repeated closing',async()=>{
+ const {closeShift,openShift}=await import('../lib/os/inventory-model.ts');
+ const shift=withShift().shifts[0];
+ assert.throws(()=>openShift(withShift(),{...shift,id:'second'}),/уже открыта/);
+ assert.throws(()=>openShift(fresh(),{...shift,opening:NaN}),/корректные/);
+ assert.throws(()=>openShift(fresh(),{...shift,warehouse:'missing'}),/Склад/);
+ assert.throws(()=>closeShift(withShift(),'shift1',-1,'date'),/корректные/);
+ const closed=closeShift(withShift(),'shift1',1000,'2026-10-05');assert.equal(closed.shifts[0].expected,1000);
+ assert.throws(()=>closeShift(closed,'shift1',1000,'date'),/уже закрыта/);
+});
+test('fractional sale and repeated returns conserve stock and total money to their defined precision',()=>{
+ const source={...withShift(),products:withShift().products.map(product=>product.id==='SKU-100'?{...product,price:1,stocks:{main:1,reserve:0}}:product)};
+ const sold=completeSale(source,[{productId:'SKU-100',quantity:.3}],.01,{Наличные:.29},'fraction','date');assert.equal(sold.products[0].stocks.main,.7);
+ let next=sold;for(let index=0;index<3;index++)next=refundSale(next,'fraction',{'SKU-100':.1});
+ assert.equal(next.products[0].stocks.main,1);assert.equal(next.sales[0].refunds,.29);assert.equal(next.sales[0].status,'Возвращён');
+ assert.equal(Math.round(next.sales[0].refundHistory.reduce((sum,refund)=>sum+refund.amount,0)*100),29);
+ assert.throws(()=>refundSale(sold,'fraction',{'unknown':1}),/не принадлежит/);
+});
