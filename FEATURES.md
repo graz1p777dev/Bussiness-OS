@@ -116,3 +116,7 @@ Validation: 34 model tests, TypeScript checking, production build and browser ch
 - Shared selects flatten conditional option groups and support an empty choice without passing Radix an empty item value. Browser verification confirms supplier selection and reset produce the correct form values.
 
 Validation: 37 passing tests, TypeScript, targeted lint, production build; browser checks of generated Yes/No paths, continued delay, condition choices, nullable supplier fields and mobile overflow.
+
+Настройки: филиалы, склады, отделы, счета, категории расходов и разрешённые адреса управляются кнопками выбора с отдельным добавлением названия. Основной филиал/склад выбирается из текущего списка; удаление выбранного значения обновляет основной вариант. Форматы файлов, UTM и расписание бэкапов выбираются без ручного ввода. Сохранённые дополнительные варианты не теряются.
+
+Builder учитывает отдельные права создания, редактирования, удаления, экспорта и запуска ИИ; режим просмотра запрещает изменение параметров, перемещение и соединение блоков.
