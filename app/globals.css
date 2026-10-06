@@ -108,3 +108,4 @@ input[type=file]::file-selector-button{padding:8px 12px;margin-right:12px;border
 @media(max-width:760px){.settings-save{position:static;box-shadow:none}.settings-save small{line-height:1.6}.settings-save button{flex:1}}
 .brand-mark{line-height:1}
 .auth-password-step{display:grid;place-items:center;min-height:80vh;padding:24px}.auth-password-step>.panel{width:min(480px,100%)}.auth-password-step h1{font-size:calc(24px * var(--font-scale,1));margin-bottom:12px}.auth-password-step form>p{margin:16px 0}.auth-password-step>.panel>button{margin-top:18px;width:100%}
+.metric-delete-control{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}.metric-delete-control p{margin-bottom:10px}.metric-delete-control button[data-permission=remove]{color:#e38491;border-color:color-mix(in srgb,#e38491 35%,var(--border))}
