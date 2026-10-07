@@ -31,6 +31,8 @@
 
 ## Запуск в облачной среде
 
-Установить зависимости через npm ci. Рабочие команды: npm run dev, npm test, npx tsc --noEmit --incremental false, npm run build. Использовать поддерживаемую Node-версию из проекта; тесты используют --experimental-strip-types. Итог оформлять в проверенную ветку/PR, не сливать автоматически в main.
+В проекте есть pnpm-lock.yaml и отсутствует package-lock.json, поэтому npm ci использовать нельзя. Требуется Node >=22.13.0 и pnpm 11.25.0, как указано в package.json. В чистой облачной среде установка: corepack pnpm install --frozen-lockfile. Не менять lockfile ради смены package manager. Если Corepack отсутствует, установить указанную версию pnpm через официальный npm registry и выполнить pnpm install --frozen-lockfile.
+
+Рабочие команды: pnpm dev, pnpm test, pnpm exec tsc --noEmit --incremental false, pnpm build. Чистый клон автоматически выбирает portable execution profile: scripts/run-framework.mjs запускает vinext. Локальный .sites-runtime/execution-profile.json не переносить в облако. Итог оформлять в проверенную ветку/PR, не сливать автоматически в main.
 
 Облачная среда не имеет доступа к браузерному localStorage пользователя и исходным папкам на его ПК/VPS. Не утверждать, что эти данные перенесены. Перенесены исходники, тесты и заметки. Если нужны дополнительные исходные данные, запросить их конкретно.
