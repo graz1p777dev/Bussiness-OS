@@ -2,27 +2,31 @@
 import Select from '../components/os/Select';
 import DocumentExplorer from './DocumentExplorer';
 import AutomationWorkspace from './AutomationWorkspace';
+import CalendarWorkspace from './CalendarWorkspace';
 import type {ActionPermissions} from '../lib/os/team';
 import {useEffect,useState} from 'react';
 import NeutralArt from '../components/os/NeutralArt';
 import {Plus,Trash2,Pencil,Play,Pause,CalendarDays,ChevronLeft,ChevronRight,FileText,Workflow,Users,ArrowUpRight,Download} from 'lucide-react';
 import {useStored} from '../lib/os/storage';
+import {applyBlueprint,planAutomationProposal} from '../lib/os/business-blueprint';
 import {type Entity,money} from '../lib/os/data';
 import {Modal,Drawer,Badge,SearchField} from '../components/os/ui';
 export const businessRoutes=['calendar','employees','knowledge','marketing','finance','automations'];
 type RecordItem=Entity&{date?:string;time?:string;email?:string;category?:string};
-type Props={route:string;tab:string;setTab:(s:string)=>void;search:string;setSearch:(s:string)=>void;notify:(s:string)=>void;audit:(s:string)=>void;go:(s:string)=>void;onDetail?:(d:Entity)=>void;onCreate?:()=>void;createSignal?:number;permissions?:ActionPermissions};
+type Props={route:string;tab:string;setTab:(s:string)=>void;search:string;setSearch:(s:string)=>void;notify:(s:string)=>void;audit:(s:string)=>void;go:(s:string)=>void;onDetail?:(d:Entity)=>void;onCreate?:()=>void;createSignal?:number;permissions?:ActionPermissions;allowedPages?:string[];canApplyClientChanges?:boolean};
 const make=(name:string,i:number,extra:Partial<RecordItem>={}):RecordItem=>({id:'BM-'+i,name,value:0,status:'Активно',channel:'Основное',owner:'Алихан',note:'',...extra});
 export const initial:Record<string,RecordItem[]>={calendar:[make('Планирование команды',1,{date:'2026-10-05',time:'10:00',owner:'Айым',note:'План недели и приоритеты',channel:'Встреча'}),make('Консультация: Айжан',2,{date:'2026-10-05',time:'14:30',channel:'Консультация'}),make('Запуск осенней кампании',3,{date:'2026-10-08',time:'11:00',channel:'Маркетинг'})],employees:['Айым Абдиева','Медина Осмонова','Алихан Торебеков'].map((n,i)=>make(n,10+i,{channel:['Менеджер продаж','Консультант','Администратор'][i],owner:['Оператор','Оператор','Владелец'][i],email:['aiym','medina','alihan'][i]+'@demiresults.kg',value:48+i*8,note:'Работает с клиентами и задачами команды',status:'В сети'})),knowledge:['Каталог косметики','Правила консультации','Доставка и оплата','Ответы на частые вопросы'].map((n,i)=>make(n,20+i,{channel:i===3?'FAQ':'Документ',owner:'Sales Agent',status:'Индексирован',note:['Beauty of Joseon SPF 50 — 1 800 сом. Мягкое очищение и подбор ухода.','Уточните тип кожи, текущий уход и чувствительность. Медицинские вопросы передавайте специалисту.','Бишкек: доставка курьером. Оплата наличными или переводом.','Как выбрать SPF? Уточните тип кожи и предпочтения клиента.'][i]})),marketing:['Осенний уход','Повторные продажи','SPF • Meta Ads','Органический трафик'].map((n,i)=>make(n,30+i,{channel:['Instagram','WhatsApp','Meta Ads','Сайт'][i],value:[18000,3200,12000,0][i],note:'Осенняя кампания • персональный подбор ухода',status:i===3?'Завершено':'Активно',category:'utm_campaign=autumn_'+i})),finance:[make('Продажи магазина',40,{channel:'Доход',value:842500,date:'2026-10-05',status:'Оплачен'}),make('Закупка товара',41,{channel:'Расход',value:320000,date:'2026-10-04',status:'Оплачен'}),make('Аренда помещения',42,{channel:'Расход',value:68000,date:'2026-10-01',status:'Оплачен'}),make('Расходы AI',43,{channel:'Расход',value:1240,date:'2026-10-05',status:'Оплачен'})],automations:['Новый лид → Sales Agent','Follow-up через 24 часа','Проверка оплаты → CRM','Склад: низкий остаток'].map((n,i)=>make(n,50+i,{value:24+i*8,channel:['lead.created','timer.24h','order.paid','stock.low'][i],note:'Событие → проверка условия → действие',status:i===3?'Пауза':'Активно'}))};
 export function applyBusinessBlueprint(selections:boolean[],description='',kind:'setup'|'automation'='setup'){
  if(typeof window==='undefined')return;
+ if(kind==='automation'){
+  applyBlueprint(localStorage,planAutomationProposal(localStorage,selections,description,initial,'copilot-'+crypto.randomUUID()));
+  window.dispatchEvent(new Event('storage-custom'));
+  return;
+ }
  let existing:Record<string,RecordItem[]>;
  try{existing={...initial,...JSON.parse(localStorage.getItem('life-business-modules-v1')||'{}')}}catch{existing={...initial}}
  const workflows=[...(existing.automations||[])];
- if(kind==='automation'){
-  const name='Лиды без ответа 10 минут → Sales Agent';
-  if(!workflows.some(w=>w.name===name))workflows.push(make(name,Date.now(),{id:crypto.randomUUID(),channel:'lead.unanswered',note:'Таймер: 10 минут → проверить ответ сотрудника → назначить Sales Agent → уведомить менеджера. '+description,status:'Активно'}));
- }else if(selections[4]){
+ if(selections[4]){
   for(const template of initial.automations){if(!workflows.some(w=>w.name===template.name))workflows.push({...template,id:crypto.randomUUID(),note:template.note+(description?' • '+description:'')})}
  }
  localStorage.setItem('life-business-modules-v1',JSON.stringify({...existing,automations:workflows}));
@@ -50,4 +54,4 @@ function BusinessModulesBase({route,tab,setTab,search,setSearch,notify,audit,go,
  </>;
 }
 
-export default function BusinessModules(props:Props){return props.route==='automations'?<AutomationWorkspace {...props} initialData={initial}/>:props.route==='knowledge'?<DocumentExplorer notify={props.notify} audit={props.audit} createSignal={props.createSignal}/>:<BusinessModulesBase {...props}/>;}
+export default function BusinessModules(props:Props){return props.route==='calendar'?<CalendarWorkspace {...props} initialData={initial}/>:props.route==='automations'?<AutomationWorkspace {...props} initialData={initial}/>:props.route==='knowledge'?<DocumentExplorer notify={props.notify} audit={props.audit} createSignal={props.createSignal} permissions={props.permissions}/>:<BusinessModulesBase {...props}/>;}

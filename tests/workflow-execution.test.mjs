@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {runWorkflow} from '../lib/os/workflow.ts';
+import {runWorkflow,workflowClientChanges} from '../lib/os/workflow.ts';
 const client={id:'c',name:'Алина "Тест"',value:1000,status:'Первичный контакт',channel:'Instagram',owner:'Айым',note:'',city:'Бишкек'};
 const context={clients:[client],tasks:[],inventory:{products:[],sales:[]}};
 const node=(id,kind,data={})=>({id,data:{kind,label:id,...data}});
@@ -8,3 +8,28 @@ const edge=(source,target,extra={})=>({id:source+target,source,target,...extra})
 test('approval and delay resume locally without duplicating drafts or mutating CRM',()=>{const nodes=[node('t','Trigger'),node('m','Message',{template:'Привет, {{имя}}!'}),node('a','Human Approval'),node('d','Delay',{minutes:5}),node('c','CRM',{stage:'Оплата'})];const edges=[edge('t','m'),edge('m','a'),edge('a','d'),edge('d','c')];const first=runWorkflow(nodes,edges,client,context);assert.equal(first.waitingFor,'a');assert.equal(first.waitingType,'approval');const second=runWorkflow(nodes,edges,client,context,{approvedNodes:['a']});assert.equal(second.waitingFor,'d');const final=runWorkflow(nodes,edges,client,context,{approvedNodes:['a','d']});assert.equal(final.waitingFor,null);assert.equal(final.updated.status,'Оплата');assert.equal(final.drafts.length,1);assert.equal(client.status,'Первичный контакт')});
 test('branch ports select the right route and converging paths execute downstream once after parents',()=>{const nodes=[node('t','Trigger'),node('a','Transform',{code:'{"side":"a"}'}),node('b','CRM',{stage:'Оплата'}),node('c','Message',{template:'Этап: {{этап}}'}),node('o','Output')];const edges=[edge('t','a'),edge('t','b'),edge('a','o'),edge('b','c'),edge('c','o')];const result=runWorkflow(nodes,edges,client,context);assert.equal(result.journal.filter(j=>j.id==='o').length,1);assert.ok(result.journal.findIndex(j=>j.id==='o')>result.journal.findIndex(j=>j.id==='c'));const branch=[node('t','Trigger'),node('q','Condition',{field:'amount',operator:'at-least',value:1000}),node('y','CRM',{stage:'Оплата'}),node('n','Output')];assert.equal(runWorkflow(branch,[edge('t','q'),edge('q','y',{sourceHandle:'yes'}),edge('q','n',{sourceHandle:'no'})],client,context).updated.status,'Оплата')});
 test('transform preserves quoted client values; HTTP and code only use explicit mock results',()=>{const transformed=runWorkflow([node('t','Trigger'),node('x','Transform',{code:'{"customer":"{{клиент}}","nested":["{{город}}"]}'})],[edge('t','x')],client,context);assert.deepEqual(transformed.output,{customer:client.name,nested:['Бишкек']});const nodes=[node('t','Trigger'),node('h','HTTP/API',{url:'https://example.com',mockEnabled:true,mockResponse:'{"paid":false}'})];const result=runWorkflow(nodes,[edge('t','h')],client,context);assert.deepEqual(result.output,{paid:false});assert.match(result.journal[1].result,/запрос не выполнялся/);assert.throws(()=>runWorkflow([nodes[0],node('h','HTTP/API',{url:'https://example.com'})],[edge('t','h')],client,context),/backend/);assert.throws(()=>runWorkflow([nodes[0],node('h','HTTP/API',{url:'https://example.com',mockEnabled:true,mockResponse:'wrong'})],[edge('t','h')],client,context),/JSON/)});
+test('agent assignment prepares the existing handoff format without mutating the client and applies only workflow fields',()=>{
+ const agent={id:'sales',name:'Sales Agent',status:'Активен'};
+ const source={...client,agentHistory:[{from:'Оператор',to:'Айым',reason:'Вручную',at:'2026-10-01'}],customFields:{budget:'5000'}};
+ const saved=structuredClone(source);
+ const nodes=[node('t','Trigger'),node('a','CRM',{action:'assign-agent',agentId:agent.id})],edges=[edge('t','a')];
+ const assignmentContext={...context,agents:[agent],stages:[{id:'contact',name:client.status}]};
+ const result=runWorkflow(nodes,edges,source,assignmentContext,{now:'2026-10-07T10:00:00Z'});
+ assert.deepEqual(source,saved);
+ assert.equal(result.updated.agentAssignment.stageId,'contact');
+ assert.equal(result.updated.agentAssignment.manual,true);
+ assert.equal(result.updated.agentHistory.length,2);
+ assert.deepEqual(result.updated.agentHistory[1],saved.agentHistory[0]);
+ const changes=workflowClientChanges(source,{...result.updated,note:'Must not overwrite',customFields:{budget:'1'}});
+ assert.deepEqual(Object.keys(changes).sort(),['agentAssignment','agentHistory','agentId','owner']);
+ const applied={...source,...changes};
+ assert.equal(applied.owner,'Sales Agent');
+ assert.equal(applied.agentId,'sales');
+ assert.deepEqual(applied.customFields,{budget:'5000'});
+ assert.equal(applied.note,client.note);
+ const repeated=runWorkflow(nodes,edges,applied,assignmentContext);
+ assert.deepEqual(workflowClientChanges(applied,repeated.updated),{});
+ assert.equal(repeated.updated.agentHistory.length,2);
+ assert.throws(()=>runWorkflow(nodes,edges,source,{...assignmentContext,agents:[{...agent,status:'Пауза'}]}),/активного агента/);
+ assert.throws(()=>runWorkflow(nodes,edges,source,{...assignmentContext,stages:[]}),/этап клиента недоступен/);
+});

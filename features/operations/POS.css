@@ -1,1 +1,5 @@
 .quantity-controls input{width:76px;min-width:0;padding:4px 6px;text-align:center}
+
+.receipt-free-price{display:grid;grid-template-columns:minmax(0,1fr) minmax(80px,110px);align-items:center;gap:6px 12px;margin-top:12px;font-size:12px;color:var(--muted)}
+.receipt-free-price input{min-width:0;padding:7px 9px;font-size:14px;color:var(--text)}
+.receipt-free-price small{grid-column:1/-1}

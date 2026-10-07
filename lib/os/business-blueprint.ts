@@ -61,6 +61,22 @@ export function buildAutomationBlueprint(workspace:string,stages:string[]|string
  return {records,snapshots};
 }
 
+export function planAutomationProposal(storage:StorageAccess,selections:boolean[],description:string,defaults:Record<string,StoredRow[]>,id:string,now=new Date().toISOString()){
+ if(!selections[0])throw new Error('Выберите «Создать автоматизацию», чтобы сохранить сценарий.');
+ const agent=selections[2]?read<Entity[]>(storage,'agents',initialAgents).find(item=>item.name==='Sales Agent'&&item.status==='Активен'):undefined;
+ if(selections[2]&&!agent)throw new Error('Включите Sales Agent в AI Center или снимите назначение агента.');
+ const steps:Record<string,unknown>[]=[{kind:'Trigger',label:'Обращение клиента',source:'Все',event:'message.received'}];
+ if(selections[1])steps.push({kind:'Delay',label:'Подождать 10 минут',minutes:10});
+ if(selections[2])steps.push({kind:'CRM',label:'Назначить Sales Agent',action:'assign-agent',agentId:agent!.id});
+ if(selections[3])steps.push({kind:'Message',label:'Уведомление менеджеру',channel:'Менеджер',template:'Проверьте обращение клиента {{клиент}}. Текущий ответственный: {{ответственный}}. Этап: {{этап}}.'});
+ const name=['Обращение клиента',...(selections[1]?['10 минут']:[]),...(selections[2]?['Sales Agent']:[]),...(selections[3]?['Черновик менеджеру']:[])].join(' → ');
+ const flow:BlueprintWorkflow={id,name,date:now,nodes:steps.map((data,i)=>({id:id+'-'+i,type:'agent',position:{x:70+i*310,y:140},data})),edges:steps.slice(1).map((_,i)=>({id:id+'-edge-'+i,source:id+'-'+i,target:id+'-'+(i+1)}))};
+ const record={id,name,value:0,status:'Пауза',channel:'message.received',owner:'Ответственный за сделку',note:'Локальный сценарий: проверьте результат на клиенте перед применением. Сообщения остаются черновиками.'+(description?'\n'+description:''),workflowId:id};
+ const business={...defaults,...read(storage,'business-modules-v1',defaults)};
+ const library=read<BlueprintWorkflow[]>(storage,'workflow-library-v1',[]);
+ return {'life-business-modules-v1':{...business,automations:[...(business.automations||[]),record]},'life-workflow-library-v1':[...library,flow]};
+}
+
 export function planBusinessBlueprint(storage:StorageAccess,input:BlueprintInput){
  const {workspace,text,approved,defaults}=input;
  if(!approved.some(Boolean))throw new Error('Выберите хотя бы один раздел для настройки.');

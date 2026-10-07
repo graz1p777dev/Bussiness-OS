@@ -1,7 +1,9 @@
-export type Product={id:string;name:string;sku:string;barcode:string;category:string;price:number;cost:number;unit:string;minimum:number;stocks:Record<string,number>;deleted:boolean;image?:string;productType?:string;code?:string;gtin?:string;country?:string;description?:string;height?:number;width?:number;depth?:number;weight?:number;markup?:number;discount?:number;weighted?:boolean;taxIncluded?:boolean};
+import {isStockTrackedProduct} from './product-options.ts';
+export type Product={id:string;name:string;sku:string;barcode:string;category:string;price:number;cost:number;unit:string;minimum:number;stocks:Record<string,number>;deleted:boolean;image?:string;productType?:string;isFreePrice?:boolean;code?:string;gtin?:string;country?:string;description?:string;height?:number;width?:number;depth?:number;weight?:number;markup?:number;discount?:number;weighted?:boolean;taxIncluded?:boolean};
 export type Warehouse={id:string;name:string;address:string};
 export type StockDocument={id:string;type:string;productId:string;warehouse:string;target:string;quantity:number;cost:number;date:string;note:string;status:'Черновик'|'Проведён'|'Отменён';supplier?:string;items?:{productId:string;quantity:number;cost:number}[];deltas?:{productId?:string;warehouse:string;quantity:number}[]};
-export type SaleLine={productId:string;name:string;quantity:number;price:number;cost:number;returned:number};
+export type SaleLine={productId:string;name:string;quantity:number;price:number;cost:number;returned:number;tracksStock?:boolean};
+export type CartLine={productId:string;quantity:number;price?:number};
 export type SaleRefund={id:string;date:string;shiftId:string;cashier:string;reason:string;amount:number;payments:Record<string,number>;quantities:Record<string,number>};
 export type Sale={id:string;date:string;shiftId:string;warehouse:string;items:SaleLine[];discount:number;total:number;payments:Record<string,number>;refunds:number;status:string;refundHistory?:SaleRefund[]};
 export type Shift={id:string;register:string;warehouse:string;cashier:string;opening:number;opened:string;closed:string;actual:number|null;expected?:number};
@@ -23,6 +25,7 @@ export function postDocument(state:InventoryState,id:string):InventoryState{
  for(const item of items){
   const p=state.products.find(p=>p.id===item.productId&&!p.deleted);
   if(!p)throw new Error('Выберите существующий товар.');
+  if(!isStockTrackedProduct(p))throw new Error('Услуга не участвует в складских документах: '+p.name);
   if(!finite(item.quantity)||(doc.type!=='Инвентаризация'&&item.quantity===0))throw new Error('Укажите корректное количество.');
   if(!finite(item.cost))throw new Error('Укажите корректную себестоимость.');
   let quantity=item.quantity;
@@ -46,7 +49,31 @@ export function cancelDocument(state:InventoryState,id:string):InventoryState{
  for(const d of doc.deltas){const productId=d.productId||doc.productId;const p=state.products.find(p=>p.id===productId)!;const stocks=stocksByProduct.get(productId)||{...p.stocks};stocks[d.warehouse]=Math.round(((stocks[d.warehouse]||0)-d.quantity)*1000)/1000;if(stocks[d.warehouse]<0)throw new Error('Отмена приведёт к отрицательному остатку.');stocksByProduct.set(productId,stocks)}
  return {...state,products:state.products.map(p=>stocksByProduct.has(p.id)?{...p,stocks:stocksByProduct.get(p.id)!}:p),documents:state.documents.map(x=>x.id===id?{...x,status:'Отменён'}:x)};
 }
-export function completeSale(state:InventoryState,lines:{productId:string;quantity:number}[],discount:number,payments:Record<string,number>,id:string,date:string):InventoryState{const shift=state.shifts.find(s=>!s.closed);if(!shift)throw new Error('Сначала откройте смену.');if(!lines.length)throw new Error('Добавьте товары в чек.');if(new Set(lines.map(l=>l.productId)).size!==lines.length)throw new Error('Товар повторяется в чеке.');const items=lines.map(line=>{const p=state.products.find(p=>p.id===line.productId&&!p.deleted);if(!p||!finite(line.quantity)||!line.quantity)throw new Error('Проверьте товары и количество.');if(line.quantity>(p.stocks[shift.warehouse]||0))throw new Error('Недостаточно товара: '+p.name);return {productId:p.id,name:p.name,quantity:line.quantity,price:p.price,cost:p.cost,returned:0}});const subtotal=items.reduce((s,l)=>s+l.price*l.quantity,0);if(!finite(discount)||discount>subtotal)throw new Error('Скидка превышает сумму чека.');const total=Math.round((subtotal-discount)*100)/100;const paid=Object.values(payments).reduce((a,b)=>a+b,0);if(Object.values(payments).some(n=>!finite(n))||Math.abs(paid-total)>.009)throw new Error('Сумма оплат должна совпадать с итогом чека.');if(state.sales.some(s=>s.id===id))throw new Error('Этот чек уже сохранён.');return {...state,products:state.products.map(p=>{const item=items.find(i=>i.productId===p.id);return item?{...p,stocks:{...p.stocks,[shift.warehouse]:Math.round(((p.stocks[shift.warehouse]||0)-item.quantity)*1000)/1000}}:p}),sales:[{id,date,shiftId:shift.id,warehouse:shift.warehouse,items,discount,total,payments,refunds:0,status:'Оплачен'},...state.sales]}}
+export function completeSale(state:InventoryState,lines:CartLine[],discount:number,payments:Record<string,number>,id:string,date:string):InventoryState{
+ const shift=state.shifts.find(s=>!s.closed);if(!shift)throw new Error('Сначала откройте смену.');
+ if(!lines.length)throw new Error('Добавьте товары в чек.');
+ if(new Set(lines.map(l=>l.productId)).size!==lines.length)throw new Error('Товар повторяется в чеке.');
+ const items=lines.map(line=>{
+  const p=state.products.find(p=>p.id===line.productId&&!p.deleted);
+  if(!p||!finite(line.quantity)||!line.quantity)throw new Error('Проверьте товары и количество.');
+  const tracksStock=isStockTrackedProduct(p);
+  if(tracksStock&&line.quantity>(p.stocks[shift.warehouse]||0))throw new Error('Недостаточно товара: '+p.name);
+  if(line.price!==undefined&&line.price!==p.price&&!p.isFreePrice)throw new Error('Для изменения цены включите свободную цену в карточке товара.');
+  const price=line.price??p.price;
+  if(!finite(price)||Math.abs(price*100-Math.round(price*100))>.000001)throw new Error('Укажите цену с точностью до двух знаков после запятой.');
+  return {productId:p.id,name:p.name,quantity:line.quantity,price,cost:p.cost,returned:0,tracksStock};
+ });
+ const subtotal=items.reduce((s,l)=>s+l.price*l.quantity,0);
+ if(!finite(discount)||discount>subtotal)throw new Error('Скидка превышает сумму чека.');
+ const total=Math.round((subtotal-discount)*100)/100;
+ const paid=Object.values(payments).reduce((a,b)=>a+b,0);
+ if(Object.values(payments).some(n=>!finite(n))||Math.abs(paid-total)>.009)throw new Error('Сумма оплат должна совпадать с итогом чека.');
+ if(state.sales.some(s=>s.id===id))throw new Error('Этот чек уже сохранён.');
+ return {...state,products:state.products.map(p=>{
+  const item=items.find(i=>i.productId===p.id);
+  return item?.tracksStock?{...p,stocks:{...p.stocks,[shift.warehouse]:Math.round(((p.stocks[shift.warehouse]||0)-item.quantity)*1000)/1000}}:p;
+ }),sales:[{id,date,shiftId:shift.id,warehouse:shift.warehouse,items,discount,total,payments,refunds:0,status:'Оплачен'},...state.sales]};
+}
 function refundPayments(sale:Sale,amount:number){
  const entries=Object.entries(sale.payments).filter(([,value])=>value>0);const total=entries.reduce((sum,[,value])=>sum+value,0);let remaining=Math.round(amount*100);
  return Object.fromEntries(entries.map(([method,value],index)=>{const cents=index===entries.length-1?remaining:Math.min(remaining,Math.round(amount*100*value/total));remaining-=cents;return [method,cents/100]}));
@@ -88,5 +115,5 @@ export function refundSale(state:InventoryState,id:string,quantities:Record<stri
  const refunds=Math.round(refundedValue*(subtotal?sale.total/subtotal:0)*100)/100;const amount=Math.round((refunds-sale.refunds)*100)/100;
  if(!items.some((item,index)=>item.returned>sale.items[index].returned))throw new Error('Укажите количество для возврата.');
  const history:SaleRefund={id:details?.id||id+'-refund-'+((sale.refundHistory?.length||0)+1),date:details?.date||new Date().toISOString(),shiftId:shift.id,cashier:shift.cashier,reason:details?.reason.trim()||'Возврат товара',amount,payments:{Наличные:amount},quantities:{...quantities}};
- return {...state,products:state.products.map(product=>quantities[product.id]?{...product,stocks:{...product.stocks,[sale.warehouse]:Math.round(((product.stocks[sale.warehouse]||0)+quantities[product.id])*1000)/1000}}:product),sales:state.sales.map(existing=>existing.id===id?{...existing,items,refunds,refundHistory:[...(existing.refundHistory||[]),history],status:items.every(item=>item.returned===item.quantity)?'Возвращён':'Частичный возврат'}:existing)};
+ return {...state,products:state.products.map(product=>quantities[product.id]&&sale.items.find(item=>item.productId===product.id)?.tracksStock!==false?{...product,stocks:{...product.stocks,[sale.warehouse]:Math.round(((product.stocks[sale.warehouse]||0)+quantities[product.id])*1000)/1000}}:product),sales:state.sales.map(existing=>existing.id===id?{...existing,items,refunds,refundHistory:[...(existing.refundHistory||[]),history],status:items.every(item=>item.returned===item.quantity)?'Возвращён':'Частичный возврат'}:existing)};
 }

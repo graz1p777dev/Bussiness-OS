@@ -116,3 +116,5 @@ input[type=file]::file-selector-button{padding:8px 12px;margin-right:12px;border
 .import-product-preview{max-height:340px;overflow:auto}.import-product-preview thead{position:sticky;top:0;background:var(--panel);z-index:1}
 
 .import-file-control{margin:16px 0}.import-file-control>button{max-width:100%}.import-file-control>button>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.assistant-action-link{display:flex;justify-content:flex-start;width:100%;margin-top:10px;padding:9px 12px;color:var(--accent);background:var(--panel);border-color:var(--border)}.assistant-action-link span{margin-left:auto}.assistant-highlight{max-width:calc(100vw - 12px)}

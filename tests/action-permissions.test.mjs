@@ -14,3 +14,21 @@ test('mandatory password step applies to active staff and does not bypass accoun
  assert.equal(requiresPasswordChange({status:'Уволен',forcePasswordChange:true}),false);
  assert.equal(requiresPasswordChange(undefined),false);
 });
+
+test('persisted owner roles receive current canonical pages without expanding custom roles',async()=>{
+ const {resolvedRolePages,hasAccess}=await import('../lib/os/team.ts');
+ const {navigation}=await import('../lib/os/data.ts');
+ const owner={...initialEmployees[0],role:'owner'};
+ const persisted={id:'owner',name:'Владелец',pages:['dashboard'],actions:['edit']};
+ const custom={...persisted,id:'custom',name:'Своя роль'};
+ assert.deepEqual(resolvedRolePages(persisted),navigation.map(item=>item[1]));
+ assert.equal(hasAccess(owner,[persisted],'partners','edit'),true);
+ assert.equal(hasAccess(owner,[persisted],'messenger'),true);
+ assert.equal(hasAccess(owner,[persisted],'not-a-page'),false);
+ assert.equal(hasAccess({...owner,status:'Заблокирован'},[persisted],'partners'),false);
+ assert.equal(hasAccess({...owner,role:'custom'},[custom],'partners'),false);
+ assert.equal(hasAccess(owner,[persisted],'partners','remove'),false);
+ assert.deepEqual(persisted.pages,['dashboard']);
+ assert.deepEqual(resolvedRolePages(custom),['dashboard']);
+ assert.deepEqual(resolvedRolePages(undefined),[]);
+});
