@@ -3,7 +3,7 @@ import {useCallback,useEffect,useMemo,type SetStateAction} from 'react';
 import {useStored} from './storage';
 export const defaultPalettes={dark:{bg:'#111216',panel:'#181a20',sidebar:'#15161b',hover:'#22242d',border:'#2a2c35',text:'#ebecef',muted:'#8b8f9e',accent:'#a78bfa'},light:{bg:'#f7f8fb',panel:'#ffffff',sidebar:'#f0f2f6',hover:'#e9ebf2',border:'#e0e3eb',text:'#242633',muted:'#737888',accent:'#7763c6'}};
 export type Palette=typeof defaultPalettes.dark;
-export const defaultAppearance={custom:false,palettes:defaultPalettes,density:'comfortable',fontSize:14,radius:6,motion:true,lowPower:false};
+export const defaultAppearance={custom:false,palettes:defaultPalettes,density:'comfortable',fontFamily:'system',fontSize:14,radius:6,motion:true,lowPower:false};
 type Appearance=typeof defaultAppearance;
 function normalizedAppearance(value:Appearance):Appearance {
  const source=value&&typeof value==='object'?value:defaultAppearance;
@@ -13,7 +13,7 @@ function normalizedAppearance(value:Appearance):Appearance {
   const color=source.palettes?.[mode]?.[key];
   if(typeof color==='string'&&/^#[0-9a-f]{6}$/i.test(color))palettes[mode][key]=color;
  }
- return {custom:source.custom===true,palettes,density:source.density==='compact'?'compact':'comfortable',fontSize:number(source.fontSize,14,12,18),radius:number(source.radius,6,0,18),motion:source.motion!==false,lowPower:source.lowPower===true};
+ return {custom:source.custom===true,palettes,density:source.density==='compact'?'compact':'comfortable',fontFamily:['system','humanist','classic'].includes(source.fontFamily)?source.fontFamily:'system',fontSize:number(source.fontSize,14,12,18),radius:number(source.radius,6,0,18),motion:source.motion!==false,lowPower:source.lowPower===true};
 }
 export function useAppearance(theme:string){
  const [stored,setStored]=useStored('appearance-v2',defaultAppearance,normalizedAppearance);
@@ -29,6 +29,7 @@ export function useAppearance(theme:string){
    root.dataset.density=appearance.density;
    root.dataset.lowPower=String(appearance.lowPower);
    root.dataset.motion=String(appearance.motion&&!appearance.lowPower&&!reducedMotion.matches);
+   root.style.setProperty('--os-font',({system:"Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",humanist:"'Trebuchet MS',Verdana,sans-serif",classic:"Georgia,'Times New Roman',serif"} as Record<string,string>)[appearance.fontFamily]);
    root.style.setProperty('--base-font',appearance.fontSize+'px');
    root.style.setProperty('--font-scale',String(appearance.fontSize/14));
    root.style.setProperty('--control-radius',appearance.radius+'px');

@@ -36,3 +36,18 @@ test('run history is isolated by account and rechecks access after a role change
  assert.equal(canReadAgentRun({journal:[{tool:'get_clients'}]},'owner-user',all),true);
  assert.equal(canReadAgentRun({...run,journal:[{tool:'unknown'}]},'analyst',all),false);
 });
+test('inventory read without finance never sends cost to the model or journal, including derived product fields',()=>{
+ const full={...context,inventory:{...context.inventory,products:context.inventory.products.map(product=>({...product,markup:42}))}};
+ const limited=scopeAgentContext(full,['get_inventory'],all),output=executeAgentTool('get_inventory',{},limited);
+ assert.equal(Object.hasOwn(limited.inventory.products[0],'cost'),false);assert.equal(Object.hasOwn(limited.inventory.products[0],'markup'),false);
+ assert.equal(Object.hasOwn(output[0],'cost'),false);assert.equal(output[0].price,100);assert.equal(output[0].quantity,4);
+ const finance=scopeAgentContext(full,['get_inventory'],{...all,finance:true});assert.equal(executeAgentTool('get_inventory',{},finance)[0].cost,70);
+ assert.equal(full.inventory.products[0].cost,70);
+});
+test('finance revocation hides cost-bearing and legacy inventory reports but preserves explicitly sanitized reports',()=>{
+ const run={actorId:'analyst',tools:['get_inventory'],journal:[{tool:'get_inventory'}]};
+ assert.equal(canReadAgentRun(run,'analyst',all),false);
+ assert.equal(canReadAgentRun({...run,finance:true},'analyst',all),false);
+ assert.equal(canReadAgentRun({...run,finance:false},'analyst',all),true);
+ assert.equal(canReadAgentRun(run,'analyst',{...all,finance:true}),true);
+});

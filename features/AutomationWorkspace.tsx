@@ -3,7 +3,7 @@ import {useEffect,useState} from 'react';
 import {Workflow,Plus,Play,Pause,Pencil,Trash2,ArrowUpRight,CheckCircle2,Clock,AlertCircle,Copy,Download,Search,ArrowRight} from 'lucide-react';
 import {Modal,Drawer,Badge,SearchField} from '../components/os/ui';
 import Select from '../components/os/Select';
-import {useStored} from '../lib/os/storage';
+import {useStored,readStoredValue} from '../lib/os/storage';
 import {initialDeals,initialTasks,initialAgents,type Entity} from '../lib/os/data';
 import {initialInventory} from '../lib/os/inventory-model';
 import {useDealStages,initialStageConfig} from '../lib/os/stage-config';
@@ -19,7 +19,7 @@ import './AutomationWorkspace.css';
 type Props={initialData:Record<string,Entity[]>;search:string;setSearch:(value:string)=>void;notify:(message:string)=>void;audit:(message:string)=>void;go:(route:string)=>void;permissions?:ActionPermissions;createSignal?:number;canApplyClientChanges?:boolean};
 type Run={id:string;automationId:string;automationName:string;workflowId:string;clientId:string;clientName:string;date:string;signature:string;approved:string[];result?:ReturnType<typeof runWorkflow>;error?:string;appliedAt?:string};
 const events:Record<string,string>={'lead.created':'Новый лид','message.received':'Входящее сообщение','deal.updated':'Смена этапа','timer.24h':'Повторный контакт через 24 часа','order.paid':'Подтверждение оплаты','stock.low':'Проверка остатков','manual':'Ручной запуск'};
-function read<T>(key:string,fallback:T):T{const raw=localStorage.getItem('life-'+key);return raw===null?fallback:JSON.parse(raw) as T}
+function read<T>(key:string,fallback:T):T{return readStoredValue(key,fallback)}
 function signal(keys:string[]){for(const key of keys)window.dispatchEvent(new CustomEvent('storage-custom',{detail:{key:'life-'+key}}))}
 function status(run:Run){return run.error?'Ошибка':run.appliedAt?'Изменения применены':run.result?.waitingFor?'Ожидает решения':run.result?.journal.length===1&&run.result.journal[0].status==='skipped'?'Условие не совпало':'Тест завершён'}
 

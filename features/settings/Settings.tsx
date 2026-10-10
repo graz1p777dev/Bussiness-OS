@@ -4,28 +4,31 @@ import PromptManager from '../PromptManager';
 import {ReplyAssistantSettings} from '../../components/os/ConversationAssistant';
 import Select from '../../components/os/Select';
 import {useState,type Dispatch,type SetStateAction,type ReactNode,type CSSProperties} from 'react';
-import {Palette as PaletteIcon,Search,RotateCcw,Download,ShieldCheck,Check,SlidersHorizontal,ChevronDown,Monitor,X} from 'lucide-react';
+import {Palette as PaletteIcon,Search,RotateCcw,FileJson,ShieldCheck,Check,SlidersHorizontal,ChevronDown,Monitor,X} from 'lucide-react';
 import Link from 'next/link';
 import {useStored} from '../../lib/os/storage';
 import {defaultAppearance,defaultPalettes,type Palette} from '../../lib/os/appearance';
-import {downloadText} from '../../lib/os/export';
+import SettingsDocumentPanel from './SettingsDocumentPanel';
+import SystemAISettings from '../SystemAISettings';
+import AgentConfiguration from '../AgentConfiguration';
+import {settingsAccess,settingsSectionPaths} from '../../lib/os/settings-document';
 import {settingsCatalog,settingDefaults,type SettingField} from './catalog';
 import ListSetting from './ListSetting';
-import {initialRoles} from '../../lib/os/team';
+import {hasAccess,initialEmployees,initialRoles} from '../../lib/os/team';
 import StageEditor from './StageEditor';
 import ColorPicker from './ColorPicker';
 import NeutralArt from '../../components/os/NeutralArt';
 import {Modal} from '../../components/os/ui';
 
-type Props={canReadClients?:boolean;canEdit?:boolean;theme:string;setTheme:(s:string)=>void;accent:string;setAccent:(s:string)=>void;accents:Record<string,string>;collapsed:boolean;setCollapsed:(v:boolean)=>void;appearance:typeof defaultAppearance;setAppearance:Dispatch<SetStateAction<typeof defaultAppearance>>;notify:(s:string)=>void;audit:(s:string)=>void;go:(s:string)=>void;setWorkspace:(s:string)=>void};
+type Props={actorId?:string;canReadClients?:boolean;canEdit?:boolean;theme:string;setTheme:(s:string)=>void;accent:string;setAccent:(s:string)=>void;accents:Record<string,string>;collapsed:boolean;setCollapsed:(v:boolean)=>void;appearance:typeof defaultAppearance;setAppearance:Dispatch<SetStateAction<typeof defaultAppearance>>;notify:(s:string)=>void;audit:(s:string)=>void;go:(s:string)=>void;setWorkspace:(s:string)=>void};
 const tokenNames:Record<keyof Palette,string>={bg:'Фон приложения',panel:'Карточки и окна',sidebar:'Боковое меню',hover:'При наведении',border:'Границы',text:'Основной текст',muted:'Подписи',accent:'Акцентный цвет'};
 const sectionGroups=[
  {name:'Для вас',sections:['Внешний вид','Уведомления','Безопасность']},
  {name:'Работа компании',sections:['Компания','CRM и воронки','Диалоги','Товары и остатки','Касса и продажи','Филиалы и склады','Команда и зарплаты','Роли и права']},
  {name:'ИИ и отчёты',sections:['AI и модели','Автоматизации','База знаний','Аналитика','Финансы','Маркетинг']},
- {name:'Система',sections:['Сервер и мониторинг','Данные и приватность','API и разработчик']}
+ {name:'Система',sections:['System AI','Сервер и мониторинг','Данные и приватность','API и разработчик','Конфигурация']}
 ];
-const sectionLabels:Record<string,string>={'AI и модели':'ИИ и боты','API и разработчик':'Для разработчика'};
+const sectionLabels:Record<string,string>={'AI и модели':'ИИ и боты','API и разработчик':'Для разработчика','Конфигурация':'Общая конфигурация'};
 const primaryFields:Record<string,string[]>={
  'Компания':['company','phone','email','address','currency','workdays','open','close'],
  'Филиалы и склады':['defaultBranch','defaultWarehouse','branches','warehouses'],
@@ -52,10 +55,13 @@ function ChoiceButtons<T extends string|number>({label,value,options,onChange,di
  return <div className="setting-options" role="group" aria-label={label}>{options.map(option=><button type="button" key={option.value} disabled={disabled} aria-pressed={value===option.value} className={value===option.value?'selected':''} onClick={()=>onChange(option.value)}><span>{option.label}</span>{option.detail&&<small>{option.detail}</small>}{value===option.value&&<Check size={14}/>}</button>)}</div>;
 }
 export default function Settings(props:Props){
- const canEdit=props.canEdit??true;
- const p:Props={...props,setTheme:value=>{if(canEdit)props.setTheme(value)},setAccent:value=>{if(canEdit)props.setAccent(value)},setCollapsed:value=>{if(canEdit)props.setCollapsed(value)},setWorkspace:value=>{if(canEdit)props.setWorkspace(value)},setAppearance:value=>{if(canEdit)props.setAppearance(value)}};
+ const [employees]=useStored('team-employees-v3',initialEmployees),[previewId]=useStored('team-preview-v3','');
+ const [section,setSection]=useState('Внешний вид');
  const [roles]=useStored('team-roles-v3',initialRoles);
- const [section,setSection]=useState('Внешний вид');const [promptOpen,setPromptOpen]=useState(false);
+ const actor=employees.find(employee=>employee.id===(props.actorId||previewId||'owner-user')),access=settingsAccess(actor,roles,props.canEdit??true),sectionPath=settingsSectionPaths[section];
+ const canEdit=(props.canEdit??true)&&(!sectionPath||access.canWrite(...sectionPath));
+ const p:Props={...props,canEdit,setTheme:value=>{if(canEdit)props.setTheme(value)},setAccent:value=>{if(canEdit)props.setAccent(value)},setCollapsed:value=>{if(canEdit)props.setCollapsed(value)},setWorkspace:value=>{if(canEdit)props.setWorkspace(value)},setAppearance:value=>{if(canEdit)props.setAppearance(value)}};
+ const [promptOpen,setPromptOpen]=useState(false);
  const [query,setQuery]=useState('');
  const [mode,setMode]=useState<'dark'|'light'>(p.theme==='Light'?'light':'dark');
  const [picker,setPicker]=useState<keyof Palette|null>(null);
@@ -64,6 +70,7 @@ export default function Settings(props:Props){
  const setValues:typeof storeValues=update=>{if(canEdit)storeValues(update)};
  const config=settingsCatalog.find(s=>s.name===section);
  const set=(key:string,value:string|number|boolean)=>{
+  if(!canEdit)return;
   setValues(v=>{const next={...v,[key]:value};const dependent=key==='branches'?'defaultBranch':key==='warehouses'?'defaultWarehouse':null;if(dependent){const choices=String(value).split('\n').filter(Boolean);if(!choices.includes(String(next[dependent])))next[dependent]=choices[0]||''}return next});
   if(key==='company')p.setWorkspace(String(value));
  };
@@ -89,7 +96,7 @@ export default function Settings(props:Props){
     <small>Настройки этого браузера</small>
    </aside>
    <section className="settings-content" data-readonly={!canEdit}>{!canEdit&&<p role="status" className="muted">Только просмотр: ваша роль не разрешает изменять настройки.</p>}
-    {search&&!matchesSection(section)?<div className="panel settings-search-guidance"><Search size={24}/><h2>{visibleGroups.length?'Выберите найденный раздел':'Нет подходящих настроек'}</h2><p>{visibleGroups.length?'Совпадения показаны в меню настроек.':'Попробуйте «тема», «ответы» или «уведомления».'}</p></div>:section==='Внешний вид'?<>
+    {search&&!matchesSection(section)?<div className="panel settings-search-guidance"><Search size={24}/><h2>{visibleGroups.length?'Выберите найденный раздел':'Нет подходящих настроек'}</h2><p>{visibleGroups.length?'Совпадения показаны в меню настроек.':'Попробуйте «тема», «ответы» или «уведомления».'}</p></div>:section==='Конфигурация'?<SettingsDocumentPanel actorId={props.actorId} canEdit={props.canEdit??true} notify={p.notify} audit={p.audit}/>:section==='System AI'?<SystemAISettings actorId={props.actorId} canEdit={(props.canEdit??true)&&access.canWrite('system','ai')} canProduction={hasAccess(actor,roles,'server','production')} notify={p.notify} go={p.go}/>:section==='Внешний вид'?<>
      <div className="section-intro"><h2>Внешний вид</h2><p>Все изменения сразу видны во всём приложении.</p></div>
      <section className={'panel performance-setting '+(p.appearance.lowPower?'is-enabled':'')}>
       <label className="setting-toggle"><span><b><Monitor size={19}/>Слабый компьютер</b><small>Убирает тяжёлые эффекты и анимации графиков. Все данные и инструменты остаются доступны.</small></span><input type="checkbox" disabled={!canEdit} checked={p.appearance.lowPower} onChange={e=>p.setAppearance(a=>({...a,lowPower:e.target.checked}))}/></label>
@@ -107,6 +114,7 @@ export default function Settings(props:Props){
       </div></details>
      </section>
      <section className="panel appearance-readability"><h3>Размер и расположение</h3>
+      <div className="appearance-row"><div><h4>Шрифт</h4><p>Без загрузки внешних ресурсов</p></div><Select aria-label="Шрифт интерфейса" disabled={!canEdit} value={p.appearance.fontFamily} onChange={event=>p.setAppearance(value=>({...value,fontFamily:event.target.value}))}><option value="system">Системный</option><option value="humanist">Мягкий и открытый</option><option value="classic">Классический</option></Select></div>
       <div className="appearance-row"><div><h4>Плотность</h4><p>Расстояния между элементами</p></div><ChoiceButtons disabled={!canEdit} label="Плотность интерфейса" value={p.appearance.density} options={[{value:'comfortable',label:'Комфортная',detail:'Больше воздуха'},{value:'compact',label:'Компактная',detail:'Больше на экране'}]} onChange={density=>p.setAppearance(a=>({...a,density}))}/></div>
       <div className="appearance-row"><div><h4>Размер текста</h4><p>{p.appearance.fontSize} px · во всём приложении</p></div><ChoiceButtons disabled={!canEdit} label="Размер текста" value={p.appearance.fontSize} options={[{value:12,label:'Мелкий'},{value:14,label:'Обычный'},{value:16,label:'Крупный'},{value:18,label:'Очень крупный'}]} onChange={fontSize=>p.setAppearance(a=>({...a,fontSize}))}/></div>
       <div className="appearance-row"><div><h4>Углы карточек</h4><p>Скругление {p.appearance.radius} px</p></div><ChoiceButtons disabled={!canEdit} label="Скругление карточек" value={p.appearance.radius} options={[{value:0,label:'Прямые'},{value:6,label:'Небольшие'},{value:12,label:'Мягкие'},{value:18,label:'Круглые'}]} onChange={radius=>p.setAppearance(a=>({...a,radius}))}/></div>
@@ -118,17 +126,17 @@ export default function Settings(props:Props){
      </section>
     </>:section==='Безопасность'?<section className="panel settings-security"><NeutralArt kind="access"/><h2>Безопасность аккаунта</h2><p>Пароль, двухфакторная проверка, резервные коды и активные сессии.</p><button className="primary" onClick={()=>p.go('security')}>Открыть безопасность</button><Link className="button-link" href="/login">Страница входа</Link></section>:config&&<>
      <div className="section-intro"><h2>{sectionLabels[config.name]||config.name}</h2><p>{config.description}</p></div>
-     {section==='AI и модели'&&<section className="panel"><h3>Как бот общается с клиентами</h3><p>Инструкции, готовые ответы и проверка качества собраны в настройках бота.</p><button type="button" className="primary" onClick={()=>p.go('laboratory')}>Настроить бота</button></section>}
+     {section==='AI и модели'&&hasAccess(actor,roles,'agents')&&<section className="panel"><h3>Постоянные агенты</h3><AgentConfiguration actorId={props.actorId} canEdit={canEdit&&hasAccess(actor,roles,'agents','edit')} access={{finance:hasAccess(actor,roles,'finance'),run:hasAccess(actor,roles,'agents','ai'),export:hasAccess(actor,roles,'agents','export'),clients:Boolean(p.canReadClients),analytics:hasAccess(actor,roles,'analytics'),inventory:hasAccess(actor,roles,'inventory'),tasks:hasAccess(actor,roles,'tasks')}} notify={p.notify} audit={p.audit}/></section>}{section==='AI и модели'&&<section className="panel"><h3>Как бот общается с клиентами</h3><p>Инструкции, готовые ответы и проверка качества собраны в настройках бота.</p><button type="button" className="primary" onClick={()=>p.go('laboratory')}>Настроить бота</button></section>}
      {section==='Роли и права'&&<section className="panel"><h3>Доступ сотрудников</h3><p>Выберите роль, разрешённые страницы и действия.</p><button type="button" className="primary" onClick={()=>p.go('employees')}>Открыть роли и сотрудников</button></section>}
      {section==='Сервер и мониторинг'&&<section className="panel"><h3>ИИ-помощник для сервера</h3><p>Диагностика ошибок и план исправления с Claude Code, Codex, Antigravity или своей моделью.</p><button type="button" onClick={()=>p.go('server')}>Открыть настройки сервера</button></section>}
-     {section==='AI и модели'&&<section className="panel"><h3>Автонастройка промпта</h3><p>Менеджер задаст вопросы и поможет улучшить инструкции по выбранным диалогам.</p><button className="primary" onClick={()=>setPromptOpen(true)}>Открыть менеджер промпта</button></section>}{promptOpen&&<PromptManager close={()=>setPromptOpen(false)} notify={p.notify} canEdit={p.canEdit??true} canReadClients={p.canReadClients??true}/>} {['AI и модели','Диалоги'].includes(section)&&<BotReplyApprovalSettings canEdit={p.canEdit??true} notify={p.notify}/>} {section==='AI и модели'&&<ReplyAssistantSettings canEdit={p.canEdit??true}/>}{section==='CRM и воронки'&&!search&&<StageEditor canEdit={canEdit} notify={p.notify}/>}
+     {section==='AI и модели'&&<section className="panel"><h3>Автонастройка промпта</h3><p>Менеджер задаст вопросы и поможет улучшить инструкции по выбранным диалогам.</p><button className="primary" onClick={()=>setPromptOpen(true)}>Открыть менеджер промпта</button></section>}{promptOpen&&<PromptManager close={()=>setPromptOpen(false)} notify={p.notify} canEdit={canEdit&&hasAccess(actor,roles,'agents','edit')} canReadClients={p.canReadClients??true}/>} {['AI и модели','Диалоги'].includes(section)&&<BotReplyApprovalSettings canEdit={p.canEdit??true} notify={p.notify}/>} {section==='AI и модели'&&<ReplyAssistantSettings canEdit={p.canEdit??true}/>}{section==='CRM и воронки'&&!search&&<StageEditor canEdit={canEdit} notify={p.notify}/>}
      <form onSubmit={e=>e.preventDefault()}>
       {basicFields.length>0&&<section className="panel"><div className="settings-fields">{basicFields.map(renderField)}</div></section>}
       {advancedFields.length>0&&<details key={section} className="panel settings-disclosure advanced-settings"><summary><span><b>Дополнительные настройки</b><small>Лимиты, ограничения и особые случаи</small></span><ChevronDown size={17}/></summary><div className="disclosure-content settings-fields">{advancedFields.map(renderField)}</div></details>}
-      <div className="settings-save"><small><Check size={14}/>Изменения сохранены в этом браузере</small><button type="button" onClick={()=>setReset(true)}><RotateCcw size={14}/>Сбросить раздел</button></div>
+      <div className="settings-save"><small><Check size={14}/>Изменения сохранены в этом браузере</small><button type="button" disabled={!canEdit} onClick={()=>setReset(true)}><RotateCcw size={14}/>Сбросить раздел</button></div>
      </form>
     </>}
-    <footer className="settings-tools"><button type="button" onClick={()=>downloadText('business-os-settings.json',JSON.stringify({appearance:p.appearance,theme:p.theme,settings:values,stages:JSON.parse(localStorage.getItem('life-stage-config-v3')||'null'),roles:JSON.parse(localStorage.getItem('life-team-roles-v3')||'null')},null,2),'application/json')}><Download size={14}/>Скачать настройки</button></footer>
+    {section!=='Конфигурация'&&<footer className="settings-tools"><button type="button" onClick={()=>setSection('Конфигурация')}><FileJson size={14}/>Общая конфигурация · импорт и экспорт</button></footer>}
    </section>
   </div>
   {picker&&<ColorPicker label={tokenNames[picker]} value={palette[picker]} close={()=>setPicker(null)} onChange={color=>p.setAppearance(a=>({...a,custom:true,palettes:{...a.palettes,[mode]:{...a.palettes[mode],[picker]:color}}}))}/>}

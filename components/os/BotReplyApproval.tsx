@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {Bot,Check,GraduationCap,Pencil,RefreshCw,ShieldCheck,Sparkles,ThumbsDown,ThumbsUp,X} from 'lucide-react';
-import {useStored} from '../../lib/os/storage';
+import {useStored,readStoredValue} from '../../lib/os/storage';
 import {initialAgents,type Entity} from '../../lib/os/data';
 import type {ChatMessage} from '../../lib/os/conversations';
 import {applyBotPromptRevision,botReplySettings,createBotPromptRevision,createBotReplyDraft,createBotReplyFeedback,decideBotReply,editBotReply,getBotReplyContext,initialBotReplyConfig,isBotReplyReady,isBotReplyStale,reconcileBotReplyDrafts,rewriteBotReply,type AgentPromptSettings,type BotPromptRevision,type BotReplyDraft,type BotReplyFeedback} from '../../lib/os/bot-reply-approval';
@@ -106,7 +106,7 @@ export function BotReplyApprovalSettings({canEdit,notify}:{canEdit:boolean;notif
  function applyRevision(){
   if(!canEdit||!revision)return;
   let latest=agentSettings;
-  try{const raw=localStorage.getItem('life-agent-settings');if(raw)latest=JSON.parse(raw) as AgentPromptSettings}catch{announce('Не удалось проверить текущий промпт. Повторите после обновления страницы.');return}
+  try{latest=readStoredValue('agent-settings',{}) as AgentPromptSettings}catch{announce('Не удалось проверить текущий промпт. Повторите после обновления страницы.');return}
   const result=applyBotPromptRevision(latest,agents,revision);
   if(!result.ok){announce(result.reason);return}
   const now=new Date().toISOString();

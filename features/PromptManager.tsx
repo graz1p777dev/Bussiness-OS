@@ -3,7 +3,7 @@ import {useEffect,useRef,useState,type CSSProperties} from 'react';
 import {ArrowLeft,ArrowRight,Check,CheckCheck,Code2,GitCompareArrows,MessageSquare,Send,Settings2,SlidersHorizontal,Sparkles} from 'lucide-react';
 import {Modal} from '../components/os/ui';
 import Select from '../components/os/Select';
-import {useStored} from '../lib/os/storage';
+import {useStored,readStoredValue,writeStoredValue} from '../lib/os/storage';
 import {initialAgents,initialDeals} from '../lib/os/data';
 import type {ChatMessage} from '../lib/os/conversations';
 import {initialStageConfig} from '../lib/os/stage-config';
@@ -52,12 +52,12 @@ export default function PromptManager({close,notify,canEdit=true,canReadClients=
  function apply(){
   if(!canEdit||!review||!approvedSuggestions.length||stale)return;
   try{
-   const stored=localStorage.getItem('life-agent-settings');
+   const stored=JSON.stringify(readStoredValue('agent-settings',{}));
    const latest:AgentPromptSettings=stored?JSON.parse(stored):settings;
    if(!latest||typeof latest!=='object'||Array.isArray(latest))throw new Error('Не удалось прочитать настройки агентов. Закройте окно и проверьте настройки.');
    if((latest[review.agentId]?.prompt??currentAgent?.note)!==review.basePrompt){setError('Промпт изменился после проверки. Вернитесь к выбору данных и подготовьте изменения заново.');return}
    const updated=applyPromptToSettings(latest,review.agentId,nextPrompt);
-   localStorage.setItem('life-agent-settings',JSON.stringify(updated));
+   writeStoredValue('agent-settings',updated);
    setSettings(updated);window.dispatchEvent(new CustomEvent('storage-custom',{detail:{key:'life-agent-settings'}}));
    setPhase(3);notify?.('Промпт агента '+review.agentName+' обновлён');
   }catch(cause){setError(cause instanceof Error?cause.message:'Не удалось сохранить промпт. Проверьте доступ к локальному хранилищу.')}

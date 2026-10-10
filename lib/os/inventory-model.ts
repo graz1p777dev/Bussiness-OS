@@ -5,7 +5,8 @@ export type StockDocument={id:string;type:string;productId:string;warehouse:stri
 export type SaleLine={productId:string;name:string;quantity:number;price:number;cost:number;returned:number;tracksStock?:boolean};
 export type CartLine={productId:string;quantity:number;price?:number};
 export type SaleRefund={id:string;date:string;shiftId:string;cashier:string;reason:string;amount:number;payments:Record<string,number>;quantities:Record<string,number>};
-export type Sale={id:string;date:string;shiftId:string;warehouse:string;items:SaleLine[];discount:number;total:number;payments:Record<string,number>;refunds:number;status:string;refundHistory?:SaleRefund[]};
+export type SaleCustomer={customerId:string;customerName:string;customerPhone?:string;couponId?:string;couponCode?:string};
+export type Sale={id:string;date:string;shiftId:string;warehouse:string;items:SaleLine[];discount:number;total:number;payments:Record<string,number>;refunds:number;status:string;refundHistory?:SaleRefund[];customerId?:string;customerName?:string;customerPhone?:string;couponId?:string;couponCode?:string};
 export type Shift={id:string;register:string;warehouse:string;cashier:string;opening:number;opened:string;closed:string;actual:number|null;expected?:number};
 export type InventoryState={products:Product[];warehouses:Warehouse[];documents:StockDocument[];sales:Sale[];shifts:Shift[]};
 export const initialInventory:InventoryState={products:['Beauty of Joseon SPF 50','COSRX Snail Essence','Anua Heartleaf Toner','Round Lab Cleanser','Skin1004 Centella','Medicube Collagen Cream'].map((name,i)=>({id:'SKU-'+(100+i),name,sku:'SKU-'+(100+i),barcode:'996000000'+String(100+i),category:['SPF','Уход','Тонеры','Очищение','Уход','Кремы'][i],price:1800+i*350,cost:950+i*180,unit:'шт.',minimum:5,stocks:{main:[4,6,32,48,25,18][i],reserve:0},deleted:false})),warehouses:[{id:'main',name:'Основной склад',address:'Бишкек'},{id:'reserve',name:'Резервный склад',address:'Онлайн-магазин'}],documents:[],sales:[],shifts:[]};
@@ -49,8 +50,10 @@ export function cancelDocument(state:InventoryState,id:string):InventoryState{
  for(const d of doc.deltas){const productId=d.productId||doc.productId;const p=state.products.find(p=>p.id===productId)!;const stocks=stocksByProduct.get(productId)||{...p.stocks};stocks[d.warehouse]=Math.round(((stocks[d.warehouse]||0)-d.quantity)*1000)/1000;if(stocks[d.warehouse]<0)throw new Error('Отмена приведёт к отрицательному остатку.');stocksByProduct.set(productId,stocks)}
  return {...state,products:state.products.map(p=>stocksByProduct.has(p.id)?{...p,stocks:stocksByProduct.get(p.id)!}:p),documents:state.documents.map(x=>x.id===id?{...x,status:'Отменён'}:x)};
 }
-export function completeSale(state:InventoryState,lines:CartLine[],discount:number,payments:Record<string,number>,id:string,date:string):InventoryState{
+export function completeSale(state:InventoryState,lines:CartLine[],discount:number,payments:Record<string,number>,id:string,date:string,customer?:SaleCustomer):InventoryState{
  const shift=state.shifts.find(s=>!s.closed);if(!shift)throw new Error('Сначала откройте смену.');
+ if(customer&&(!customer.customerId?.trim()||!customer.customerName?.trim()))throw new Error('Выберите существующего клиента или оформите чек без клиента.');
+ const customerLink=customer?{customerId:customer.customerId.trim(),customerName:customer.customerName.trim(),...(customer.customerPhone?{customerPhone:customer.customerPhone.trim()}:{}),...(customer.couponId?{couponId:customer.couponId,couponCode:customer.couponCode}: {})}:{};
  if(!lines.length)throw new Error('Добавьте товары в чек.');
  if(new Set(lines.map(l=>l.productId)).size!==lines.length)throw new Error('Товар повторяется в чеке.');
  const items=lines.map(line=>{
@@ -72,7 +75,7 @@ export function completeSale(state:InventoryState,lines:CartLine[],discount:numb
  return {...state,products:state.products.map(p=>{
   const item=items.find(i=>i.productId===p.id);
   return item?.tracksStock?{...p,stocks:{...p.stocks,[shift.warehouse]:Math.round(((p.stocks[shift.warehouse]||0)-item.quantity)*1000)/1000}}:p;
- }),sales:[{id,date,shiftId:shift.id,warehouse:shift.warehouse,items,discount,total,payments,refunds:0,status:'Оплачен'},...state.sales]};
+ }),sales:[{id,date,shiftId:shift.id,warehouse:shift.warehouse,items,discount,total,payments,refunds:0,status:'Оплачен',...customerLink},...state.sales]};
 }
 function refundPayments(sale:Sale,amount:number){
  const entries=Object.entries(sale.payments).filter(([,value])=>value>0);const total=entries.reduce((sum,[,value])=>sum+value,0);let remaining=Math.round(amount*100);
