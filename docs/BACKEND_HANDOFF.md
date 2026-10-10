@@ -187,3 +187,6 @@ Dashboard layout хранится в appearance.dashboardLayout; fontFamily — 
 
 ## Помощник Agent Builder
 Frontend теперь готовит проверяемую JSON proposal без автоматического применения. Для LLM-реализации передавать схему, запрос, доступные tools/stages и права; ответ — версионированная graph proposal и объяснение изменений. Проверять schema/workflow/RBAC сервером, связывать proposal с baseline hash, применять только после явного подтверждения и сохранять audit/version. Сейчас локальные правила не являются вызовом модели; произвольные запросы отвергаются.
+
+## Knowledge Spaces
+Пространство frontend — корневая папка documents-explorer-v1; вложенные документы остаются прежними записями/blob IDs. Инструкции и чаты хранятся отдельно, история разделена по actor. Локальный поиск выдаёт цитаты текстовых файлов, не AI-синтез. Backend: spaceId, membership/ACL, instructions, chat/messages, attachment processing, RAG citations с version/document IDs; исключать удалённые и недоступные материалы при retrieval и повторном чтении истории, привязывать tenant/actor на сервере. PDF/OCR и реальные AI-ответы здесь не реализованы.

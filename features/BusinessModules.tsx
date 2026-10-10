@@ -1,6 +1,6 @@
 'use client';
 import Select from '../components/os/Select';
-import DocumentExplorer from './DocumentExplorer';
+import KnowledgeSpaces from './KnowledgeSpaces';
 import AutomationWorkspace from './AutomationWorkspace';
 import CalendarWorkspace from './CalendarWorkspace';
 import type {CalendarSource} from '../lib/os/calendar';
@@ -57,4 +57,4 @@ function BusinessModulesBase({route,tab,setTab,search,setSearch,notify,audit,go,
  </>;
 }
 
-export default function BusinessModules(props:Props){return props.route==='calendar'?<CalendarWorkspace {...props} initialData={initial}/>:props.route==='automations'?<AutomationWorkspace {...props} initialData={initial}/>:props.route==='knowledge'?<DocumentExplorer notify={props.notify} audit={props.audit} createSignal={props.createSignal} permissions={props.permissions}/>:<BusinessModulesBase key={props.route} {...props}/>;}
+export default function BusinessModules(props:Props){return props.route==='calendar'?<CalendarWorkspace {...props} initialData={initial}/>:props.route==='automations'?<AutomationWorkspace {...props} initialData={initial}/>:props.route==='knowledge'?<KnowledgeSpaces notify={props.notify} audit={props.audit} createSignal={props.createSignal} permissions={props.permissions}/>:<BusinessModulesBase key={props.route} {...props}/>;}
