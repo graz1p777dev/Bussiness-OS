@@ -1,0 +1,5 @@
+.workflow-code-heading p,.workflow-code-help p{color:var(--muted);line-height:1.6}
+.workflow-code-help{margin:12px 0;padding:12px;border:1px solid var(--border);border-radius:10px}
+.workflow-code-label{display:grid;gap:8px;margin:16px 0}
+.workflow-code-label textarea{width:100%;min-height:340px;height:45vh;resize:vertical;font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;tab-size:2;white-space:pre;padding:16px}
+.workflow-code-success{color:var(--accent);white-space:pre-wrap}
