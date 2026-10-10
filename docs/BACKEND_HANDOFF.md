@@ -184,3 +184,6 @@
 
 ## Последний связанный frontend-срез
 Dashboard layout хранится в appearance.dashboardLayout; fontFamily — whitelist system/humanist/classic. AI-события клиента сейчас выводятся из локальных latest drafts и feedback по customerId/dealId. Backend должен хранить неизменяемую историю генерации, подтверждения, отклонения и редактирования с actor/agent/customer/deal IDs и временем. Tools get_calendar/get_settings возвращают только разрешённые поля и источники; повторять эти ограничения на сервере, а не доверять frontend. Actor override версии сотрудника — UI-контекст, не серверное удостоверение личности.
+
+## Помощник Agent Builder
+Frontend теперь готовит проверяемую JSON proposal без автоматического применения. Для LLM-реализации передавать схему, запрос, доступные tools/stages и права; ответ — версионированная graph proposal и объяснение изменений. Проверять schema/workflow/RBAC сервером, связывать proposal с baseline hash, применять только после явного подтверждения и сохранять audit/version. Сейчас локальные правила не являются вызовом модели; произвольные запросы отвергаются.
