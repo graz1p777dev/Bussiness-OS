@@ -1,7 +1,7 @@
 import {agentToolDefinitions,summarizeAgentAnalytics,type AgentContext} from './agent-tools.ts';
 
-export type AgentDataAccess={run:boolean;export:boolean;clients:boolean;analytics:boolean;inventory:boolean;tasks:boolean;finance?:boolean};
-export type AgentRunScope={actorId?:string;tools?:string[];finance?:boolean;journal:{tool:string}[]};
+export type AgentDataAccess={run:boolean;export:boolean;clients:boolean;analytics:boolean;inventory:boolean;tasks:boolean;finance?:boolean;knowledge?:boolean};
+export type AgentRunScope={actorId?:string;tools?:string[];finance?:boolean;knowledgeSpaces?:string[];journal:{tool:string}[]};
 const requirements:Record<string,keyof AgentDataAccess>={get_clients:'clients',get_analytics:'analytics',get_inventory:'inventory',get_tasks:'tasks',web_search:'run'};
 
 export function permittedAgentTools(access:AgentDataAccess){
@@ -18,6 +18,7 @@ export function scopeAgentContext(context:AgentContext,requested:string[],access
  };
 }
 export function canReadAgentRun(run:AgentRunScope,actorId:string,access:AgentDataAccess){
+ if(run.knowledgeSpaces?.length&&access.knowledge!==true)return false;
  if(!access.run||(run.actorId?run.actorId!==actorId:actorId!=='owner-user'))return false;
  const permitted=new Set(permittedAgentTools(access));
  const hasInventory=[...(run.tools||[]),...run.journal.map(step=>step.tool)].includes('get_inventory');

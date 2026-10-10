@@ -6,12 +6,13 @@ export const initialBotReplySettings:BotReplySettings={approvalEnabled:true,stri
 export const initialBotReplyConfig={prompt:'Ты консультант магазина косметики. Уточни потребности, проверь наличие и предложи следующий шаг. Не подтверждай оплату без проверки.',storeMemory:'DemiResults. Доставка по Бишкеку. Каталог: SPF, очищение и уход.',clientMemory:'Чувствительная кожа, нужен мягкий уход.',model:'Chat Model',provider:'OpenAI',mode:'С подтверждением',stopWords:'спам\nреклама',temperature:.4,rate:0,manager:'Айым',strictTraining:false};
 export function botReplySettings(config:{mode:string;strictTraining?:boolean}):BotReplySettings{return {approvalEnabled:config.mode==='С подтверждением',strictTraining:Boolean(config.strictTraining)}}
 export type AgentPromptSettings=Record<string,Record<string,string>>;
-export type BotReplyContext={customerId:string;customerName:string;pipeline:string;stage:string;agentId:string;agentName:string;prompt:string;request:string;messageKey:string;customerDetails:string};
+import {knowledgeInstructions,knowledgeReplySources,type AgentKnowledge} from './agent-knowledge.ts';
+export type BotReplyContext={customerId:string;customerName:string;pipeline:string;stage:string;agentId:string;agentName:string;prompt:string;request:string;messageKey:string;customerDetails:string;knowledge?:AgentKnowledge};
 export type BotReplyDraft={id:string;customerId:string;agentId:string;context:BotReplyContext;contextKey:string;text:string;originalText:string;status:'pending'|'approved'|'rejected';createdAt:string;updatedAt:string;edits:{instruction:string;at:string}[];feedbackDraft?:{liked:string;disliked:string};instructionDraft?:string};
 export type BotReplyFeedback={id:string;draftId:string;agentId:string;customerId:string;request:string;stage:string;replyText:string;liked:string;disliked:string;createdAt:string;appliedRevisionId?:string};
 export type BotPromptRevision={id:string;agentId:string;agentName:string;basePrompt:string;addition:string;feedbackIds:string[];createdAt:string;appliedAt?:string};
 
-export function getBotReplyContext(customer:Entity,messages:ChatMessage[],agents:Entity[],settings:AgentPromptSettings={}):BotReplyContext|null{
+export function getBotReplyContext(customer:Entity,messages:ChatMessage[],agents:Entity[],settings:AgentPromptSettings={},knowledgeByAgent:(id:string)=>AgentKnowledge|undefined=()=>undefined):BotReplyContext|null{
  if(customer.closedAt||['Успешно','Неуспешно'].includes(customer.pipeline||'')||['Успешно','Неуспешно'].includes(customer.status))return null;
  const agent=customer.agentId!==undefined?agents.find(item=>item.id===customer.agentId):agents.find(item=>item.name===customer.owner);
  if(!agent||agent.status!=='Активен')return null;
@@ -20,7 +21,8 @@ export function getBotReplyContext(customer:Entity,messages:ChatMessage[],agents
  if(last===undefined&&!hasDemoConversation(customer.id))return null;
  const request=last===undefined?'Да, немного сухая. Ещё нужен SPF.':messageText(last);
  if(!request.trim())return null;
- return {customerId:customer.id,customerName:customer.name,pipeline:customer.pipeline||'Продажи',stage:customer.status,agentId:agent.id,agentName:agent.name,prompt:settings[agent.id]?.prompt??agent.note,request,messageKey:typeof last==='object'?JSON.stringify([last.id,last.sentAt||'',messages.length]):'demo-last-incoming',customerDetails:JSON.stringify([customer.channel,customer.city||'',customer.note,customer.value,customer.customFields||{}])};
+ const knowledge=knowledgeByAgent(agent.id);
+ return {...(knowledge?.spaces.length?{knowledge}:{}),customerId:customer.id,customerName:customer.name,pipeline:customer.pipeline||'Продажи',stage:customer.status,agentId:agent.id,agentName:agent.name,prompt:settings[agent.id]?.prompt??agent.note,request,messageKey:typeof last==='object'?JSON.stringify([last.id,last.sentAt||'',messages.length]):'demo-last-incoming',customerDetails:JSON.stringify([customer.channel,customer.city||'',customer.note,customer.value,customer.customFields||{}])};
 }
 export function botReplyContextKey(context:BotReplyContext){return JSON.stringify(context)}
 export function isBotReplyStale(draft:BotReplyDraft,context:BotReplyContext|null){return !context||draft.contextKey!==botReplyContextKey(context)}
@@ -31,7 +33,9 @@ export function generateBotReplyText(context:BotReplyContext){
  const request=context.request.toLocaleLowerCase('ru');
  const topic=/достав/.test(request)?'условия доставки':/цен|стоим|сколько/.test(request)?'стоимость':/spf|кож|уход/.test(request)?'мягкий уход и SPF':'детали вашего запроса';
  const next=/оплат/i.test(context.stage)?'Проверю данные заказа и уточню следующий шаг по оплате.':/достав|комплект/i.test(context.stage)?'Проверю статус заказа и уточню следующий шаг.':`Уточню ${topic} и предложу следующий шаг.`;
- return applyLocalReplyInstructions(`${name}, спасибо за сообщение! Вы написали: «${context.request.trim().slice(0,220)}». ${next}`,context.prompt).text;
+ const sources=context.knowledge?knowledgeReplySources(context.knowledge,context.request):[];
+ const grounding=sources.length?' По материалам «'+sources[0].name+'»: '+sources[0].quote:'';
+ return applyLocalReplyInstructions(`${name}, спасибо за сообщение! Вы написали: «${context.request.trim().slice(0,220)}». ${next}${grounding}`,context.prompt+'\n'+(context.knowledge?knowledgeInstructions(context.knowledge):'')).text;
 }
 export function createBotReplyDraft(context:BotReplyContext,id:string,now:string):BotReplyDraft{
  const text=generateBotReplyText(context);

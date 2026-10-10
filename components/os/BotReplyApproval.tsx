@@ -5,45 +5,48 @@ import {useStored,readStoredValue} from '../../lib/os/storage';
 import {initialAgents,type Entity} from '../../lib/os/data';
 import type {ChatMessage} from '../../lib/os/conversations';
 import {applyBotPromptRevision,botReplySettings,createBotPromptRevision,createBotReplyDraft,createBotReplyFeedback,decideBotReply,editBotReply,getBotReplyContext,initialBotReplyConfig,isBotReplyReady,isBotReplyStale,reconcileBotReplyDrafts,rewriteBotReply,type AgentPromptSettings,type BotPromptRevision,type BotReplyDraft,type BotReplyFeedback} from '../../lib/os/bot-reply-approval';
+import {useAgentKnowledge} from '../../lib/os/use-agent-knowledge';
 import Select from './Select';
 import './BotReplyApproval.css';
 
 const emptyDrafts:Record<string,BotReplyDraft>={},emptySettings:AgentPromptSettings={},emptyHumanModes:Record<string,boolean>={};
 const emptyFeedback:BotReplyFeedback[]=[],emptyRevisions:BotPromptRevision[]=[];
 
-export function useBotReplyApproval(deals:Entity[],agents:Entity[],messages:Record<string,ChatMessage[]>,{canEdit=false,humanByChat=emptyHumanModes}:{canEdit?:boolean;humanByChat?:Record<string,boolean>}={}){
+export function useBotReplyApproval(deals:Entity[],agents:Entity[],messages:Record<string,ChatMessage[]>,{canEdit=false,canReadKnowledge=false,humanByChat=emptyHumanModes}:{canEdit?:boolean;canReadKnowledge?:boolean;humanByChat?:Record<string,boolean>}={}){
+ const knowledge=useAgentKnowledge(canReadKnowledge);
  const [config]=useStored('bot-config-v2',initialBotReplyConfig);
  const [agentSettings]=useStored<AgentPromptSettings>('agent-settings',emptySettings);
  const [drafts,setDrafts]=useStored('bot-reply-drafts-v1',emptyDrafts);
  const [hydrated,setHydrated]=useState(false);
  useEffect(()=>{let mounted=true;queueMicrotask(()=>{if(mounted)setHydrated(true)});return()=>{mounted=false}},[]);
  const settings=botReplySettings(config);
- const contexts=useMemo(()=>deals.filter(deal=>!humanByChat[deal.id]).map(deal=>getBotReplyContext(deal,messages[deal.id]||[],agents,agentSettings)).filter(context=>context!==null),[deals,messages,agents,agentSettings,humanByChat]);
+ const contexts=useMemo(()=>deals.filter(deal=>!humanByChat[deal.id]).map(deal=>getBotReplyContext(deal,messages[deal.id]||[],agents,agentSettings,knowledge.get)).filter(context=>context!==null),[deals,messages,agents,agentSettings,humanByChat,knowledge]);
  useEffect(()=>{
-  if(!hydrated||!canEdit||!settings.approvalEnabled)return;
+  if(!knowledge.ready||!hydrated||!canEdit||!settings.approvalEnabled)return;
   const now=new Date().toISOString();
   setDrafts(current=>reconcileBotReplyDrafts(current,contexts,now));
- },[hydrated,canEdit,settings.approvalEnabled,contexts,setDrafts]);
+ },[hydrated,canEdit,settings.approvalEnabled,contexts,setDrafts,knowledge.ready]);
  const readyIds=contexts.filter(context=>isBotReplyReady(drafts[context.customerId],context,settings)).map(context=>context.customerId);
  return {settings,drafts,readyIds};
 }
 
-export function BotReplyApprovalCard({customer,messages,canEdit,onSend,notify,human=false}:{customer:Entity;messages:ChatMessage[];canEdit:boolean;onSend:(text:string)=>void|boolean;notify?:(text:string)=>void;human?:boolean}){
+export function BotReplyApprovalCard({customer,messages,canEdit,onSend,notify,human=false,canReadKnowledge=false}:{customer:Entity;messages:ChatMessage[];canEdit:boolean;onSend:(text:string)=>void|boolean;notify?:(text:string)=>void;human?:boolean;canReadKnowledge?:boolean}){
+ const knowledge=useAgentKnowledge(canReadKnowledge);
  const [config]=useStored('bot-config-v2',initialBotReplyConfig),[agents]=useStored('agents',initialAgents);
  const [agentSettings]=useStored<AgentPromptSettings>('agent-settings',emptySettings);
  const [drafts,setDrafts]=useStored('bot-reply-drafts-v1',emptyDrafts);
  const [feedback,setFeedback]=useStored('bot-reply-feedback-v1',emptyFeedback);
  const [editing,setEditing]=useState(false),[notice,setNotice]=useState('');
  const confirmed=useRef(new Set<string>());
- const settings=botReplySettings(config),draft=drafts[customer.id];
- const context=getBotReplyContext(customer,messages,agents,agentSettings);
+ const settings=botReplySettings(config),savedDraft=drafts[customer.id],draft=savedDraft?.context.knowledge?.spaces.length&&!canReadKnowledge?undefined:savedDraft;
+ const context=getBotReplyContext(customer,messages,agents,agentSettings,knowledge.get);
  const stale=Boolean(draft&&isBotReplyStale(draft,context));
  const pending=draft?.status==='pending';
- const ready=isBotReplyReady(draft,context,settings,human);
+ const ready=knowledge.ready&&isBotReplyReady(draft,context,settings,human);
  function announce(text:string){setNotice(text);notify?.(text)}
  function updateDraft(update:(draft:BotReplyDraft)=>BotReplyDraft){if(!canEdit||!draft)return;setDrafts(rows=>rows[customer.id]?.id===draft.id?{...rows,[customer.id]:update(rows[customer.id])}:rows)}
  function refresh(){
-  if(!canEdit||human||!context)return;
+  if(!knowledge.ready||!canEdit||human||!context)return;
   const next=createBotReplyDraft(context,crypto.randomUUID(),new Date().toISOString());
   setDrafts(rows=>({...rows,[customer.id]:next}));setEditing(false);announce('Подготовлен черновик по текущему сообщению и этапу');
  }
@@ -67,7 +70,7 @@ export function BotReplyApprovalCard({customer,messages,canEdit,onSend,notify,hu
  if(!draft)return <section className="bot-reply-approval bot-reply-empty"><header><ShieldCheck size={17}/><h3>Подтверждение ответов</h3></header><p>{human?'Диалог ведёт сотрудник. Подготовка ответов бота приостановлена.':context?'Бот может подготовить ответ на последнее сообщение клиента.':'Черновик появится после входящего сообщения у клиента с активным ответственным агентом.'}</p>{context&&!human&&<button type="button" disabled={!canEdit} data-permission="ai" onClick={refresh}><Sparkles size={14}/>Подготовить ответ</button>}</section>;
  return <section className="bot-reply-approval" aria-label="Ответ бота на подтверждение">
   <header><div><Bot size={18}/><h3>{pending?(stale?'Черновик устарел':human?'Черновик приостановлен':'AI ответ готов'):draft.status==='approved'?'Ответ подтверждён':'Ответ отклонён'}</h3></div><span className="bot-reply-status">{draft.context.agentName}</span></header>
-  <p className="bot-reply-context">Этап: {draft.context.stage} · На сообщение: «{draft.context.request}»</p>
+  <p className="bot-reply-context">{context?.knowledge?.spaces.length?'Источники: '+context.knowledge.spaces.map(space=>space.name).join(', ')+' · ':''}Этап: {draft.context.stage} · На сообщение: «{draft.context.request}»</p>
   {pending&&stale&&<p className="bot-reply-warning" role="status">Контекст изменился: сообщение, этап, агент или его инструкции. Обновите черновик перед подтверждением.</p>}
   {pending&&human&&<p className="bot-reply-warning">Диалог ведёт сотрудник. Подтверждение ответа бота приостановлено.</p>}
   {editing&&pending?<label>Подготовленный ответ<textarea aria-label="Редактировать подготовленный ответ" rows={4} disabled={!canEdit} value={draft.text} onChange={event=>updateDraft(current=>editBotReply(current,event.target.value,new Date().toISOString()))}/><small>Изменения сохраняются в черновике.</small></label>:<blockquote>{draft.text||'Черновик пуст — добавьте текст ответа.'}</blockquote>}

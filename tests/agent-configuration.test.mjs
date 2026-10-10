@@ -7,7 +7,7 @@ import {defaultSettingsDocument,setSettingsAlias,readSettingsAlias} from '../lib
 const access={run:true,export:true,clients:true,analytics:true,inventory:true,tasks:true};
 test('agent configuration reads legacy sources and schedules without losing saved preferences',()=>{
  const value=readAgentConfiguration({tools:'["crm.read","inventory.read"]',frequency:'weekly',schedule:'{"time":"18:30","weekday":7}',model:'Custom',provider:'OpenAI'},{prompt:'Inspect stock',status:'Активен'});
- assert.deepEqual(value,{name:'Агент',description:'',entities:['clients','analytics','inventory','tasks','web'],prompt:'Inspect stock',tools:['get_clients','get_inventory'],status:'enabled',frequency:'weekly',time:'18:30',weekday:7,model:'Custom',provider:'OpenAI'});
+ assert.deepEqual(value,{knowledgeSpaces:[],name:'Агент',description:'',entities:['clients','analytics','inventory','tasks','web'],prompt:'Inspect stock',tools:['get_clients','get_inventory'],status:'enabled',frequency:'weekly',time:'18:30',weekday:7,model:'Custom',provider:'OpenAI'});
  assert.equal(readAgentConfiguration({schedule:'{bad',frequency:'broken'},{status:'Пауза'}).status,'disabled');
  assert.equal(readAgentConfiguration({schedule:'24:00'}).time,'09:00');
 });

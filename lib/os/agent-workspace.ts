@@ -14,7 +14,7 @@ export function restrictAgentEntityTools(settings:Record<string,unknown>|undefin
 export type AgentMetric={id:string;label:string;value:number;unit:'number'|'money'|'percent';source:string};
 export type AgentPlanStep={id:string;label:string;tool?:string};
 export type AgentJournalStep={tool:string;input:unknown;output:unknown;completedAt?:string};
-export type AgentReport={id:string;actorId?:string;agentId?:string;agentName?:string;tools?:string[];finance?:boolean;task:string;prompt?:string;time:string;startedAt?:string;finishedAt?:string;mode?:'local'|'model';status:string;text:string;journal:AgentJournalStep[];plan?:AgentPlanStep[];metrics?:AgentMetric[];citations?:{url:string;title:string}[]};
+export type AgentReport={id:string;actorId?:string;agentId?:string;agentName?:string;tools?:string[];knowledgeSpaces?:string[];finance?:boolean;task:string;prompt?:string;time:string;startedAt?:string;finishedAt?:string;mode?:'local'|'model';status:string;text:string;journal:AgentJournalStep[];plan?:AgentPlanStep[];metrics?:AgentMetric[];citations?:{url:string;title:string}[]};
 export type AgentRecipe={id:string;name:string;description:string;task:string;tools:string[]};
 export const agentRecipes:AgentRecipe[]=[
  {id:'sales-analyst',name:'Sales Analyst',description:'Выручка и воронка продаж',task:'Сопоставь выручку кассы и открытые сделки. Покажи факты и вопросы для проверки.',tools:['get_analytics','get_clients']},
