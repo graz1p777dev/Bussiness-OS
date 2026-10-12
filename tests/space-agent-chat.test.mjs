@@ -1,0 +1,9 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {localSpaceAgentReply,spaceAgentPrompt} from '../lib/os/space-agent-chat.ts';
+const agent={id:'a',name:'Sales Agent',status:'Активен',note:'Отвечай кратко'};
+const knowledge={spaces:[{id:'sales',name:'Продажи',instructions:'Не спрашивай бюджет'}],documents:[{id:'d',name:'Доставка',spaceId:'sales',text:'Доставка по Бишкеку курьером.'}],warnings:[]};
+test('space reply uses current documents, records sources and never invents missing facts',()=>{const answer=localSpaceAgentReply(agent,{},knowledge,'Какая доставка?',[]);assert.match(answer.text,/Доставка по Бишкеку/);assert.equal(answer.sources[0].id,'d');assert.equal(localSpaceAgentReply(agent,{},knowledge,'Налоги?',[]).sources.length,0)});
+test('follow-up retrieval uses conversation topic and local instructions are applied',()=>{const answer=localSpaceAgentReply(agent,{prompt:'Уточни бюджет'},knowledge,'А подробнее?', [{id:'m',role:'user',text:'Доставка'}]);assert.equal(answer.sources[0].id,'d');assert.doesNotMatch(answer.text,/На какой бюджет/)});
+test('model context includes agent instruction, space instruction and bounded history with source IDs',()=>{const prompt=spaceAgentPrompt(agent,{prompt:'Проверь только факты'},knowledge,'Какая доставка?',[{id:'m',role:'user',text:'Бишкек'}]);assert.match(prompt,/Проверь только факты/);assert.match(prompt,/Не спрашивай бюджет/);assert.match(prompt,/"id":"d"/);assert.match(prompt,/История разговора/);assert.throws(()=>spaceAgentPrompt(agent,{},knowledge,'x'.repeat(6000),[]),/6000/)});
+test('paused agents cannot respond locally or through model context',()=>{assert.throws(()=>localSpaceAgentReply({...agent,status:'Пауза'},{},knowledge,'Доставка',[]),/паузе/);assert.throws(()=>spaceAgentPrompt(agent,{status:'disabled'},knowledge,'Доставка',[]),/паузе/)});

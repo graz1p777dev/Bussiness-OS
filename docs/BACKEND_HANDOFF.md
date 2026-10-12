@@ -197,3 +197,6 @@ Bot reply context содержит снимок знаний, поэтому и�
 
 ## Знания узлов Builder
 AI Agent и Sub Agent хранят собственный data.knowledgeSpaces (массив space IDs), независимо от глобального агента. Frontend локально разрешает этот список через общий collector и передаёт knowledgeByNode в runWorkflow; журнал содержит инструкции/релевантные цитаты и knowledge marker. Модель в workflow не вызывается. Server executor должен проверять grants отдельно для каждого узла, membership/tenant ACL и актуальные версии материалов; не наследовать автоматически все пространства другого агента.
+
+## Чат пространства с агентом
+SpaceChat.agentId и сообщения agentId/agentName/mode сохраняют выбранного собеседника. Смена агента создаёт новый чат. Контекст собирается из agent prompt + текущего space instructions/documents + последних 6 сообщений (600 символов каждое). Другие agent knowledgeSpaces не присоединяются, allowed tools=[] и бизнес-данные пустые. Frontend выбирает активного агента и отменяет старый запрос при изменении контекста. Backend должен проверить chat/space/agent ACL и tenant, сам собрать актуальные материалы и prompt, соблюдать лимиты, возвращать проверяемые citation IDs и обеспечивать streaming/cancellation. Настройки provider/model пока общие у существующего API.

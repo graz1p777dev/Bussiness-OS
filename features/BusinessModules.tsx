@@ -57,4 +57,4 @@ function BusinessModulesBase({route,tab,setTab,search,setSearch,notify,audit,go,
  </>;
 }
 
-export default function BusinessModules(props:Props){return props.route==='calendar'?<CalendarWorkspace {...props} initialData={initial}/>:props.route==='automations'?<AutomationWorkspace {...props} initialData={initial}/>:props.route==='knowledge'?<KnowledgeSpaces notify={props.notify} audit={props.audit} createSignal={props.createSignal} permissions={props.permissions}/>:<BusinessModulesBase key={props.route} {...props}/>;}
+export default function BusinessModules(props:Props){return props.route==='calendar'?<CalendarWorkspace {...props} initialData={initial}/>:props.route==='automations'?<AutomationWorkspace {...props} initialData={initial}/>:props.route==='knowledge'?<KnowledgeSpaces key={props.actorId||'owner-user'} actorId={props.actorId} canUseAgents={!props.allowedPages||props.allowedPages.includes('agents')} notify={props.notify} audit={props.audit} createSignal={props.createSignal} permissions={props.permissions}/>:<BusinessModulesBase key={props.route} {...props}/>;}

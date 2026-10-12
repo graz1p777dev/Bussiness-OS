@@ -59,7 +59,7 @@ export function decideBotReply(draft:BotReplyDraft,context:BotReplyContext|null,
 export function editBotReply(draft:BotReplyDraft,text:string,now:string):BotReplyDraft{
  return draft.status==='pending'?{...draft,text,updatedAt:now}:draft;
 }
-function applyLocalReplyInstructions(original:string,instruction:string){
+export function applyLocalReplyInstructions(original:string,instruction:string){
  const command=instruction.toLocaleLowerCase('ru');
  let text=original;
  const replacement=instruction.match(/замени\s+[«"](.+?)[»"]\s+на\s+[«"](.+?)[»"]/i);
