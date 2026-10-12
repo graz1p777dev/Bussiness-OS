@@ -19,3 +19,8 @@ export function applySpaceDocument(proposal:SpaceDocumentProposal,entries:Docume
 }
 export function localDocumentText(method:'full'|'append'|'replace',before:string,input:string,find:string){if(!input.trim())throw new Error('Введите текст.');if(method==='append')return before+(before?'\n\n':'')+input;if(method==='replace'){if(!find||!before.includes(find))throw new Error('Указанный фрагмент не найден в документе.');return before.replaceAll(find,input)}return input}
 export function parseModelDocument(text:string){const raw=text.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'');const value:unknown=JSON.parse(raw);if(!value||typeof value!=='object'||Array.isArray(value)||!('text' in value)||typeof value.text!=='string'||!value.text.trim()||value.text.length>100000)throw new Error('Модель должна вернуть JSON с текстом документа.');return value.text}
+export function spaceDocumentCommand(request:string){
+ const create=request.match(/^создай\s+документ\s+[«"]([^»"]+)[»"]\s*:\s*([\s\S]+)$/i);if(create)return {action:'create' as const,name:create[1],text:create[2],method:'full' as const,find:''};
+ const append=request.match(/^добавь\s+в\s+документ\s+[«"]([^»"]+)[»"]\s*:\s*([\s\S]+)$/i);if(append)return {action:'edit' as const,name:append[1],text:append[2],method:'append' as const,find:''};
+ const replace=request.match(/^замени\s+в\s+документе?\s+[«"]([^»"]+)[»"]\s+[«"]([^»"]+)[»"]\s+на\s+[«"]([\s\S]+)[»"]$/i);if(replace)return {action:'edit' as const,name:replace[1],text:replace[3],method:'replace' as const,find:replace[2]};return null;
+}

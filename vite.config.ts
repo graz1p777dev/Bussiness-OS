@@ -52,14 +52,16 @@ export default defineConfig(async ({ command }) => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    cacheDir: command === "serve" ? "node_modules/.vite-dev" : "node_modules/.vite-build",
     define: { "process.env.OS_EMPLOYEE_DEMO": JSON.stringify(process.env.OS_EMPLOYEE_DEMO || "") },
     server: {
       ...(managedLinux
         ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] }
         : {}),
-      ...(isCodexSeatbeltSandbox
-        ? { watch: { useFsEvents: false, usePolling: true } }
-        : {}),
+      watch: {
+        ignored: ["**/dist/**", "**/.vinext/**", "**/.wrangler/**", "**/.vite/**"],
+        ...(isCodexSeatbeltSandbox ? { useFsEvents: false, usePolling: true } : {}),
+      },
     },
     plugins: [
       vinext(),

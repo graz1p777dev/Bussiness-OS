@@ -204,3 +204,6 @@ SpaceChat.agentId и сообщения agentId/agentName/mode сохраняю�
 ## Предложения агента по документам
 space-document-proposals-v1-{actor}: proposal ID, space/agent/document IDs, action create/edit, before snapshot, proposed text, status pending/applied/rejected, appliedAt, automatic. space-document-auto-v1: явная политика автоприменения по space ID, по умолчанию false. UI проверяет source membership и snapshot CAS, создание/редактирование и AI права отдельно; бинарные attachments не редактирует. Модель возвращает только JSON text, операция/target определены пользователем, allowed tools=[]; незнакомые действия не исполняются.
 Backend: транзакционный apply + revision + audit, свежая ACL/agent status, idempotency proposal ID, server version CAS вместо доверия before из браузера, отдельная политика autorun, quotas; сохранять исходные и новые версии. Передача/применение запрещены при смене агента/space/доступа/политики во время async подготовки.
+
+## Документы командами из чата
+Frontend распознаёт явные команды создания, добавления текста и замены фрагмента с точным названием. Target ограничен текущим пространством; создаётся обычная proposal, при включённой per-space auto policy применяется через тот же CAS/permission guard. Неизвестные команды не превращаются в mutations. Backend должен сохранять review/auto-policy контракт.

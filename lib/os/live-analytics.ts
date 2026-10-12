@@ -8,7 +8,7 @@ import type {AgentReport} from './agent-workspace.ts';
 import {calendarMoment} from './calendar.ts';
 import {isStockTrackedProduct} from './product-options.ts';
 
-export type LiveAnalyticsAccess=Record<'crm'|'sales'|'inventory'|'tasks'|'appointments'|'agents'|'marketing'|'employees'|'finance'|'edit'|'export',boolean>;
+export type LiveAnalyticsAccess=Record<'crm'|'sales'|'inventory'|'tasks'|'appointments'|'agents'|'marketing'|'employees'|'finance'|'edit'|'export',boolean>&{knowledge?:boolean};
 export type LiveAnalyticsContext={deals:Entity[];inventory:InventoryState;tasks:Entity[];appointments:Appointment[];runs:AgentReport[];employees:Employee[];marketing:Entity[]};
 export const liveGroups={none:'Общий итог',date:'По дням',month:'По месяцам',channel:'По источникам',owner:'По ответственным',status:'По статусам',category:'По категориям'};
 type Group=keyof typeof liveGroups;
@@ -51,7 +51,7 @@ export function liveMetricResult(widget:LiveWidget,data:LiveAnalyticsContext,acc
  if(definition.source==='inventory')rows=data.inventory.products.filter(product=>!product.deleted&&isStockTrackedProduct(product)).map(product=>({category:product.category,value:widget.metric==='stock'?Object.values(product.stocks).reduce((sum,n)=>sum+n,0):Object.values(product.stocks).reduce((sum,n)=>sum+n,0)<product.minimum?1:0}));
  if(definition.source==='tasks')rows=data.tasks.filter(task=>!['done','завершена','завершено','выполнена','выполнено','готово','отменена','отменено'].includes(task.status.trim().toLocaleLowerCase('ru'))).map(task=>({owner:task.owner,status:task.status,value:1}));
  if(definition.source==='appointments')rows=data.appointments.map(item=>({date:day(item.date),status:item.status,value:1}));
- if(definition.source==='agents')rows=data.runs.filter(run=>canReadAgentRun(run,actorId,{run:access.agents,export:false,clients:access.crm,analytics:access.sales,inventory:access.inventory,tasks:access.tasks,finance:access.finance})).map(run=>({date:day(run.startedAt),status:run.status,value:1}));
+ if(definition.source==='agents')rows=data.runs.filter(run=>canReadAgentRun(run,actorId,{run:access.agents,export:false,clients:access.crm,analytics:access.sales,inventory:access.inventory,tasks:access.tasks,finance:access.finance,knowledge:access.knowledge})).map(run=>({date:day(run.startedAt),status:run.status,value:1}));
  if(definition.source==='marketing')rows=data.marketing.map(campaign=>({channel:campaign.channel,status:campaign.status,value:widget.metric==='campaigns'?1:campaign.value}));
  if(definition.source==='employees')rows=data.employees.filter(employee=>employee.status==='Активен').map(employee=>({category:employee.department||'Без отдела',value:1}));
  const undated=definition.snapshot?0:rows.filter(row=>!row.date).length,selected=definition.snapshot?rows:rows.filter(row=>row.date&&row.date>=start&&row.date<=end);
