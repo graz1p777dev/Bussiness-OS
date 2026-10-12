@@ -1,3 +1,4 @@
+import {knowledgeReplySources,knowledgeInstructions,type AgentKnowledge} from './agent-knowledge.ts';
 import type {Entity} from './data';
 import type {AgentContext} from './agent-tools.ts';
 import {executeAgentTool} from './agent-tools.ts';
@@ -5,8 +6,8 @@ import {renderReply} from './reply-templates.ts';
 import {assignDealAgent,type AgentDeal} from './agent-handoffs.ts';
 export type WorkflowNode={id:string;data:Record<string,unknown>};
 export type WorkflowEdge={id:string;source:string;target:string;label?:unknown;sourceHandle?:string|null};
-export type WorkflowJournal={id:string;node:string;result:string;status:'done'|'skipped'|'waiting'};
-export type WorkflowOptions={approvedNodes?:string[];now?:string};
+export type WorkflowJournal={id:string;node:string;result:string;status:'done'|'skipped'|'waiting';knowledge?:boolean};
+export type WorkflowOptions={approvedNodes?:string[];now?:string;knowledgeByNode?:Record<string,AgentKnowledge>};
 export function workflowClientChanges(client:AgentDeal,updated:AgentDeal):Partial<AgentDeal>{
  const changes:Partial<AgentDeal>={};
  if(updated.status!==client.status)changes.status=updated.status;
@@ -27,7 +28,7 @@ export function runWorkflow(nodes:WorkflowNode[],edges:WorkflowEdge[],client:Ent
  const result=(waitingFor:string|null=null,waitingType:'approval'|'delay'|null=null)=>({updated,drafts,journal,output,waitingFor,waitingType});
  while(queue.length){
   queue.sort((a,b)=>depth(a)-depth(b));const id=queue.shift()!;if(visited.has(id))continue;visited.add(id);const node=nodes.find(n=>n.id===id)!;const d=node.data;let branch:boolean|undefined;let text='';
-  const log=(text:string,status:WorkflowJournal['status']='done')=>journal.push({id,node:String(d.label||d.kind),result:text,status});
+  const log=(text:string,status:WorkflowJournal['status']='done')=>journal.push({id,node:String(d.label||d.kind),result:text,status,...(options.knowledgeByNode?.[id]?.spaces.length?{knowledge:true}:{})});
   if(d.disabled)log('Пропущен: отключён','skipped');
   else{
    switch(d.kind){
@@ -49,7 +50,7 @@ export function runWorkflow(nodes:WorkflowNode[],edges:WorkflowEdge[],client:Ent
      switch(d.operator){case 'greater':case 'at-least':case 'less':{const number=Number(d.value);if(!Number.isFinite(number)||typeof field!=='number')throw new Error('Числовое условие применимо только к сумме');branch=d.operator==='greater'?field>number:d.operator==='less'?field<number:field>=number;break}case 'not-equals':branch=String(field)!==String(d.value);break;case 'contains':branch=String(field).toLowerCase().includes(String(d.value).toLowerCase());break;default:branch=String(field)===String(d.value)}text='Условие: '+(branch?'Да':'Нет');break;
     }
     case 'Message':if(!String(d.template||'').trim())throw new Error('В блоке сообщения заполните шаблон');drafts.push(interpolate(String(d.template),updated));text='Черновик подготовлен для '+String(d.channel||updated.channel)+', без отправки';break;
-    case 'Database':case 'Inventory':case 'AI Agent':case 'Sub Agent':{const tool=String(d.tool||(d.kind==='Inventory'?'get_inventory':'get_clients'));output=executeAgentTool(tool,{query:d.query===undefined?(d.kind==='Database'?client.name:''):interpolate(String(d.query),updated)},context);text=(['AI Agent','Sub Agent'].includes(String(d.kind))?'Локальный инструмент; модель не вызывалась.\n':'')+JSON.stringify(output,null,2);break}
+    case 'Database':case 'Inventory':case 'AI Agent':case 'Sub Agent':{const tool=String(d.tool||(d.kind==='Inventory'?'get_inventory':'get_clients'));output=executeAgentTool(tool,{query:d.query===undefined?(d.kind==='Database'?client.name:''):interpolate(String(d.query),updated)},context);text=(['AI Agent','Sub Agent'].includes(String(d.kind))?'Локальный инструмент; модель не вызывалась.\n':'')+JSON.stringify(output,null,2);if(['AI Agent','Sub Agent'].includes(String(d.kind))){const knowledge=options.knowledgeByNode?.[id];if(knowledge?.spaces.length){const sources=knowledgeReplySources(knowledge,String(d.description||client.note||client.name));text+='\n\nПространства: '+knowledge.spaces.map(space=>space.name).join(', ')+'\nИнструкции (для модели):\n'+(knowledgeInstructions(knowledge)||'Не заданы')+'\nВыдержки:\n'+(sources.map(source=>source.name+': '+source.quote).join('\n')||'Совпадений по запросу нет')+'\n'+knowledge.warnings.join('\n')}}break}
     case 'Transform':output=transformValue(readJSON(d.code,'Преобразование'),updated);text=JSON.stringify(output,null,2);break;
     case 'HTTP/API':case 'Code':if(!d.mockEnabled)throw new Error('Узел '+d.kind+' требует backend. Для локального теста включите тестовый результат.');if(d.kind==='HTTP/API'){let url:URL;try{url=new URL(String(d.url))}catch{throw new Error('Укажите полный URL запроса')}if(!['http:','https:'].includes(url.protocol))throw new Error('Выберите HTTP или HTTPS');if(d.body)readJSON(d.body,'Тело запроса')}output=readJSON(d.mockResponse,'Тестовый результат');text='Тестовый результат; '+(d.kind==='Code'?'код не исполнялся':'сетевой запрос не выполнялся')+'.\n'+JSON.stringify(output,null,2);break;
     case 'Output':output=output??{client:updated,drafts};text=d.format==='JSON'?JSON.stringify(output,null,2):'Результат готов: '+updated.name+' · '+updated.status;break;

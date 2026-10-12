@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {runWorkflow} from '../lib/os/workflow.ts';
+import {parseWorkflowImport} from '../lib/os/workflow-schema.ts';
+const nodes=[{id:'t',type:'agent',position:{x:0,y:0},data:{kind:'Trigger',label:'Start'}},{id:'a',type:'agent',position:{x:300,y:0},data:{kind:'AI Agent',label:'Sales',tool:'get_tasks',description:'доставка',knowledgeSpaces:['sales']}},{id:'b',type:'agent',position:{x:600,y:0},data:{kind:'Sub Agent',label:'Support',tool:'get_tasks',description:'возврат',knowledgeSpaces:['support']}}];
+const edges=[{id:'ta',source:'t',target:'a'},{id:'ab',source:'a',target:'b'}];
+const client={id:'c',name:'Client',value:0,status:'Первичный контакт',channel:'WhatsApp',note:''};const context={clients:[],tasks:[],inventory:{products:[],warehouses:[],documents:[],sales:[],shifts:[]}};
+const knowledge=(id,instruction,text)=>({spaces:[{id,name:id,instructions:instruction}],documents:[{id:'doc-'+id,name:id,spaceId:id,text}],warnings:[]});
+test('block bindings survive JSON and each agent sees only its own knowledge in local test',()=>{assert.deepEqual(parseWorkflowImport({version:1,nodes,edges}).nodes[1].data.knowledgeSpaces,['sales']);const result=runWorkflow(nodes,edges,client,context,{knowledgeByNode:{a:knowledge('sales','Кратко','Доставка курьером.'),b:knowledge('support','Заботливо','Возврат товара по чеку.')}});assert.match(result.journal[1].result,/Кратко|Доставка курьером/);assert.doesNotMatch(result.journal[1].result,/Заботливо|Возврат товара/);assert.match(result.journal[2].result,/Заботливо|Возврат товара/);assert.doesNotMatch(result.journal[2].result,/Кратко|Доставка курьером/);assert.equal(result.journal[1].knowledge,true);assert.equal(result.journal[0].knowledge,undefined)});
+test('no resolved context means no knowledge disclosure or pretend model execution',()=>{const result=runWorkflow(nodes,edges,client,context);assert.equal(result.journal[1].knowledge,undefined);assert.doesNotMatch(result.journal[1].result,/Доставка курьером|Кратко/);assert.match(result.journal[1].result,/модель не вызывалась/)});
